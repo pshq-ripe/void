@@ -6,7 +6,7 @@ lice5.signoff = {
 }
 
 function lice5.signoff.load_reasons()
-    local f = io.open("lice5/quit.reasons", "r")
+    local f = io.open("modules/quit.reasons", "r")
     if f then
         for line in f:lines() do
             line = line:match("^%s*(.-)%s*$")

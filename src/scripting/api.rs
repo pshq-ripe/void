@@ -3,6 +3,120 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 
+// ─── Helper functions for xform/base64/base85/hex/url ──
+
+fn base64_encode_str(input: &str) -> String {
+    base64_encode_bytes(input.as_bytes())
+}
+
+fn base64_encode_bytes(bytes: &[u8]) -> String {
+    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut result = String::new();
+    for chunk in bytes.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
+        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
+        let triple = (b0 << 16) | (b1 << 8) | b2;
+        result.push(CHARS[((triple >> 18) & 0x3F) as usize] as char);
+        result.push(CHARS[((triple >> 12) & 0x3F) as usize] as char);
+        if chunk.len() > 1 { result.push(CHARS[((triple >> 6) & 0x3F) as usize] as char); } else { result.push('='); }
+        if chunk.len() > 2 { result.push(CHARS[(triple & 0x3F) as usize] as char); } else { result.push('='); }
+    }
+    result
+}
+
+fn base64_decode_str(input: &str) -> String {
+    let input = input.trim_end_matches('=');
+    let chars: Vec<u8> = input.bytes().map(|b| match b {
+        b'A'..=b'Z' => b - b'A',
+        b'a'..=b'z' => b - b'a' + 26,
+        b'0'..=b'9' => b - b'0' + 52,
+        b'+' => 62, b'/' => 63, _ => 0,
+    }).collect();
+    let mut result = Vec::new();
+    for chunk in chars.chunks(4) {
+        let b0 = chunk[0] as u32;
+        let b1 = chunk.get(1).map(|&b| b as u32).unwrap_or(0);
+        let b2 = chunk.get(2).map(|&b| b as u32).unwrap_or(0);
+        let triple = (b0 << 18) | (b1 << 12) | (b2 << 6);
+        result.push((triple >> 16) as u8);
+        if chunk.len() > 2 { result.push(((triple >> 8) & 0xFF) as u8); }
+        if chunk.len() > 3 { result.push((triple & 0xFF) as u8); }
+    }
+    String::from_utf8_lossy(&result).to_string()
+}
+
+fn base85_encode(input: &str) -> String {
+    // ASCII85 (Adobe variant) with <~ ~> wrapper
+    let bytes = input.as_bytes();
+    let mut result = String::from("<~");
+    for chunk in bytes.chunks(4) {
+        let mut val: u32 = 0;
+        for (i, &b) in chunk.iter().enumerate() {
+            val |= (b as u32) << (24 - i * 8);
+        }
+        let mut encoded = [0u8; 5];
+        for i in (0..5).rev() {
+            encoded[i] = (val % 85 + 33) as u8;
+            val /= 85;
+        }
+        let len = chunk.len() + 1;
+        for i in 0..len {
+            result.push(encoded[i] as char);
+        }
+    }
+    result.push_str("~>");
+    result
+}
+
+fn base85_decode(input: &str) -> String {
+    let input = input.trim_start_matches("<~").trim_end_matches("~>");
+    let bytes: Vec<u8> = input.bytes().filter(|b| *b >= 33 && *b <= 117).collect();
+    let mut result = Vec::new();
+    for chunk in bytes.chunks(5) {
+        let mut val: u32 = 0;
+        for &b in chunk {
+            val = val * 85 + (b as u32 - 33);
+        }
+        let len = chunk.len() - 1;
+        for i in 0..len {
+            result.push(((val >> (24 - i * 8)) & 0xFF) as u8);
+        }
+    }
+    String::from_utf8_lossy(&result).to_string()
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+fn url_encode(input: &str) -> String {
+    input.bytes().map(|b| match b {
+        b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
+        _ => format!("%{:02X}", b),
+    }).collect()
+}
+
+fn url_decode(input: &str) -> String {
+    let mut result = Vec::new();
+    let bytes = input.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let Ok(byte) = u8::from_str_radix(
+                std::str::from_utf8(&bytes[i+1..i+3]).unwrap_or("00"), 16
+            ) {
+                result.push(byte);
+                i += 3;
+                continue;
+            }
+        }
+        result.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&result).to_string()
+}
+
 /// Komenda z Lua do wykonania w głównej pętli
 #[derive(Clone, Debug)]
 pub struct LuaCommand {
@@ -490,6 +604,168 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let lower_fn = lua.create_function(|_, text: String| Ok(text.to_lowercase()))?;
         void_table.set("lower", lower_fn)?;
+    }
+
+    // ─── void.token(var, delimiter) — epic6 destructive tokenizer ──
+    // Splits var value at delimiter, returns part before, assigns remainder back
+    {
+        let token_fn = lua.create_function(|_, (text, delim): (String, String)| {
+            if let Some(pos) = text.find(&delim) {
+                let before = text[..pos].to_string();
+                let after = text[pos + delim.len()..].to_string();
+                Ok((before, after))
+            } else {
+                Ok((text, String::new()))
+            }
+        })?;
+        void_table.set("token", token_fn)?;
+    }
+
+    // ─── void.coalesce(...) — epic6 first non-empty ──
+    {
+        let coalesce_fn = lua.create_function(|_, args: Vec<String>| {
+            for arg in args {
+                if !arg.is_empty() {
+                    return Ok(arg);
+                }
+            }
+            Ok(String::new())
+        })?;
+        void_table.set("coalesce", coalesce_fn)?;
+    }
+
+    // ─── void.xform(mode, text) — epic6 base85 encode/decode ──
+    {
+        let xform_fn = lua.create_function(|_, (mode, text): (String, String)| {
+            match mode.as_str() {
+                "+B85" => Ok(base85_encode(&text)),
+                "-B85" => Ok(base85_decode(&text)),
+                "+B64" => Ok(base64_encode_str(&text)),
+                "-B64" => Ok(base64_decode_str(&text)),
+                "+URL" => Ok(url_encode(&text)),
+                "-URL" => Ok(url_decode(&text)),
+                _ => Ok(text),
+            }
+        })?;
+        void_table.set("xform", xform_fn)?;
+    }
+
+    // ─── void.pbkdf2(password, salt, iterations) — key derivation ──
+    {
+        let pbkdf2_fn = lua.create_function(|_, (password, salt, iterations): (String, String, u32)| {
+            use ring::pbkdf2;
+            let mut key = [0u8; 64];
+            pbkdf2::derive(
+                pbkdf2::PBKDF2_HMAC_SHA512,
+                std::num::NonZeroU32::new(iterations.max(1)).unwrap(),
+                salt.as_bytes(),
+                password.as_bytes(),
+                &mut key,
+            );
+            Ok(base64_encode_bytes(&key))
+        })?;
+        void_table.set("pbkdf2", pbkdf2_fn)?;
+    }
+
+    // ─── void.sha256(text) — SHA-256 hash ──
+    {
+        let sha_fn = lua.create_function(|_, text: String| {
+            use ring::digest;
+            let hash = digest::digest(&digest::SHA256, text.as_bytes());
+            Ok(hex_encode(hash.as_ref()))
+        })?;
+        void_table.set("sha256", sha_fn)?;
+    }
+
+    // ─── void.sha512(text) — SHA-512 hash ──
+    {
+        let sha_fn = lua.create_function(|_, text: String| {
+            use ring::digest;
+            let hash = digest::digest(&digest::SHA512, text.as_bytes());
+            Ok(hex_encode(hash.as_ref()))
+        })?;
+        void_table.set("sha512", sha_fn)?;
+    }
+
+    // ─── void.hmac_sha256(key, text) — HMAC-SHA-256 ──
+    {
+        let hmac_fn = lua.create_function(|_, (key, text): (String, String)| {
+            use ring::hmac;
+            let key = hmac::Key::new(hmac::HMAC_SHA256, key.as_bytes());
+            let sig = hmac::sign(&key, text.as_bytes());
+            Ok(hex_encode(sig.as_ref()))
+        })?;
+        void_table.set("hmac_sha256", hmac_fn)?;
+    }
+
+    // ─── void.random(min, max) — random number ──
+    {
+        let rand_fn = lua.create_function(|_, (min, max): (i64, i64)| {
+            use std::time::{SystemTime, UNIX_EPOCH};
+            let seed = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .subsec_nanos() as i64;
+            let range = (max - min).abs().max(1);
+            Ok(min + (seed % range))
+        })?;
+        void_table.set("random", rand_fn)?;
+    }
+
+    // ─── void.file_read(path) — read file contents ──
+    {
+        let read_fn = lua.create_function(|_, path: String| {
+            match std::fs::read_to_string(&path) {
+                Ok(content) => Ok(content),
+                Err(e) => Ok(format!("Error: {}", e)),
+            }
+        })?;
+        void_table.set("file_read", read_fn)?;
+    }
+
+    // ─── void.file_write(path, content) — write file ──
+    {
+        let write_fn = lua.create_function(|_, (path, content): (String, String)| {
+            match std::fs::write(&path, &content) {
+                Ok(_) => Ok(true),
+                Err(_) => Ok(false),
+            }
+        })?;
+        void_table.set("file_write", write_fn)?;
+    }
+
+    // ─── void.file_append(path, content) — append to file ──
+    {
+        let append_fn = lua.create_function(|_, (path, content): (String, String)| {
+            use std::io::Write;
+            match std::fs::OpenOptions::new().create(true).append(true).open(&path) {
+                Ok(mut f) => {
+                    let _ = writeln!(f, "{}", content);
+                    Ok(true)
+                }
+                Err(_) => Ok(false),
+            }
+        })?;
+        void_table.set("file_append", append_fn)?;
+    }
+
+    // ─── void.json_encode(table) — table to JSON string ──
+    {
+        let json_fn = lua.create_function(|_, text: String| {
+            // Simple JSON encoding — just wrap as string for now
+            Ok(format!("\"{}\"", text.replace('"', "\\\"")))
+        })?;
+        void_table.set("json_encode", json_fn)?;
+    }
+
+    // ─── void.base64_encode(text) / void.base64_decode(text) ──
+    {
+        let enc_fn = lua.create_function(|_, text: String| Ok(base64_encode_str(&text)))?;
+        void_table.set("base64_encode", enc_fn)?;
+    }
+    {
+        let dec_fn = lua.create_function(|_, text: String| Ok(base64_decode_str(&text)))?;
+        void_table.set("base64_decode", dec_fn)?;
     }
 
     lua.globals().set("void", void_table)?;

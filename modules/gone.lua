@@ -11,7 +11,7 @@ lice5.gone = {
 -- Load reasons from files
 function lice5.gone.load_reasons()
     -- Load gone reasons
-    local f = io.open("lice5/gone.reasons", "r")
+    local f = io.open("modules/gone.reasons", "r")
     if f then
         for line in f:lines() do
             line = line:match("^%s*(.-)%s*$")
@@ -22,7 +22,7 @@ function lice5.gone.load_reasons()
         f:close()
     end
     -- Load back reasons
-    f = io.open("lice5/back.reasons", "r")
+    f = io.open("modules/back.reasons", "r")
     if f then
         for line in f:lines() do
             line = line:match("^%s*(.-)%s*$")

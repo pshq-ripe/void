@@ -6,8 +6,8 @@ config = {
     channels = {"#ghost-bots"}
 }
 
--- LiCe5 compatibility layer
-dofile("lice5/init.lua")
+-- LiCe5 compatibility layer (modules/)
+dofile("modules/init.lua")
 
 -- Custom quit reasons (LiCe style)
 local quit_reasons = {

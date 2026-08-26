@@ -7,7 +7,7 @@ lice5.kick = {
 
 function lice5.kick.load_reasons()
     -- Load kick reasons
-    local f = io.open("lice5/kick.reasons", "r")
+    local f = io.open("modules/kick.reasons", "r")
     if f then
         for line in f:lines() do
             line = line:match("^%s*(.-)%s*$")

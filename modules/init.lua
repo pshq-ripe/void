@@ -1,24 +1,24 @@
 -- LiCe5 Compatibility Layer for Void IRC Client
 -- Main initialization script
 -- 
--- Usage: /load lice5/init.lua
--- Or add to config.lua: dofile("lice5/init.lua")
+-- Usage: /load modules/init.lua
+-- Or add to config.lua: dofile("modules/init.lua")
 
 lice5 = {
-    version = "5.1.0-void",
+    version = "5.2.0-void",
     loaded = {},
 }
 
--- Helper: load a lice5 module
+-- Helper: load a module
 function lice5.load(name)
-    local path = "lice5/" .. name .. ".lua"
+    local path = "modules/" .. name .. ".lua"
     local f, err = loadfile(path)
     if f then
         f()
         lice5.loaded[name] = true
-        void.echo("-!- LiCe5: loaded " .. name)
+        void.echo("-!- Module loaded: " .. name)
     else
-        void.echo("-!- LiCe5 error loading " .. name .. ": " .. (err or "unknown"))
+        void.echo("-!- Module error: " .. name .. ": " .. (err or "unknown"))
     end
 end
 

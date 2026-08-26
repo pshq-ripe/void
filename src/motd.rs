@@ -73,7 +73,7 @@ V   V O   O  I  D   D
 
 const WELCOME_LINES: &[&str] = &[
     "Void IRC Client v0.1.0 — epic5/epic6 inspired, Rust + Lua",
-    "Type /help for commands | /load lice5/init.lua for LiCe5 scripts",
+    "Type /help for commands | /load modules/init.lua for LiCe5 scripts",
     "",
 ];
 
