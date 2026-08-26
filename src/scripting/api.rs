@@ -90,6 +90,14 @@ fn hex_encode(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
 }
 
+fn hex_decode(hex: &str) -> Vec<u8> {
+    let hex = hex.trim_start_matches("0x");
+    (0..hex.len())
+        .step_by(2)
+        .filter_map(|i| u8::from_str_radix(&hex[i..i + 2], 16).ok())
+        .collect()
+}
+
 fn url_encode(input: &str) -> String {
     input.bytes().map(|b| match b {
         b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
@@ -771,6 +779,144 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let dec_fn = lua.create_function(|_, text: String| Ok(base64_decode_str(&text)))?;
         void_table.set("base64_decode", dec_fn)?;
+    }
+
+    // ─── void.json_decode(text) — JSON string to table ──
+    {
+        let json_fn = lua.create_function(|_, text: String| {
+            // Simple JSON decode — return as string for now
+            Ok(text)
+        })?;
+        void_table.set("json_decode", json_fn)?;
+    }
+
+    // ─── void.hex_encode(text) / void.hex_decode(text) ──
+    {
+        let enc_fn = lua.create_function(|_, text: String| {
+            Ok(hex_encode(text.as_bytes()))
+        })?;
+        void_table.set("hex_encode", enc_fn)?;
+    }
+    {
+        let dec_fn = lua.create_function(|_, text: String| {
+            let bytes = hex_decode(&text);
+            Ok(String::from_utf8_lossy(&bytes).to_string())
+        })?;
+        void_table.set("hex_decode", dec_fn)?;
+    }
+
+    // ─── void.color(fg, bg) — IRC color code helper ──
+    {
+        let color_fn = lua.create_function(|_, (fg, bg): (i32, Option<i32>)| {
+            match bg {
+                Some(b) => Ok(format!("\x03{},{}", fg, b)),
+                None => Ok(format!("\x03{}", fg)),
+            }
+        })?;
+        void_table.set("color", color_fn)?;
+    }
+
+    // ─── void.bold() / void.italic() / void.underline() / void.reverse() / void.reset() ──
+    {
+        let bold_fn = lua.create_function(|_, ()| Ok("\x02".to_string()))?;
+        void_table.set("bold", bold_fn)?;
+    }
+    {
+        let italic_fn = lua.create_function(|_, ()| Ok("\x1D".to_string()))?;
+        void_table.set("italic", italic_fn)?;
+    }
+    {
+        let underline_fn = lua.create_function(|_, ()| Ok("\x1F".to_string()))?;
+        void_table.set("underline", underline_fn)?;
+    }
+    {
+        let reverse_fn = lua.create_function(|_, ()| Ok("\x16".to_string()))?;
+        void_table.set("reverse", reverse_fn)?;
+    }
+    {
+        let reset_fn = lua.create_function(|_, ()| Ok("\x0F".to_string()))?;
+        void_table.set("reset", reset_fn)?;
+    }
+
+    // ─── void.nicks(channel) — placeholder (needs Rust-side integration) ──
+    {
+        let nicks_fn = lua.create_function(|_, _channel: String| {
+            Ok(Vec::<String>::new())
+        })?;
+        void_table.set("nicks", nicks_fn)?;
+    }
+
+    // ─── void.buffers() — placeholder ──
+    {
+        let buffers_fn = lua.create_function(|_, ()| {
+            Ok(Vec::<String>::new())
+        })?;
+        void_table.set("buffers", buffers_fn)?;
+    }
+
+    // ─── void.ison(nicks) — check if nicks are online ──
+    {
+        let ctx = ctx.clone();
+        let ison_fn = lua.create_function(move |_, nicks: Vec<String>| {
+            let ctx = ctx.lock().unwrap();
+            let _ = ctx.cmd_tx.try_send(LuaCommand {
+                raw: format!("ISON {}", nicks.join(" ")),
+            });
+            Ok(())
+        })?;
+        void_table.set("ison", ison_fn)?;
+    }
+
+    // ─── void.userhost(nick) — query userhost ──
+    {
+        let ctx = ctx.clone();
+        let userhost_fn = lua.create_function(move |_, nick: String| {
+            let ctx = ctx.lock().unwrap();
+            let _ = ctx.cmd_tx.try_send(LuaCommand {
+                raw: format!("USERHOST {}", nick),
+            });
+            Ok(())
+        })?;
+        void_table.set("userhost", userhost_fn)?;
+    }
+
+    // ─── void.log(text) — write to log ──
+    {
+        let ctx = ctx.clone();
+        let log_fn = lua.create_function(move |_, text: String| {
+            let ctx = ctx.lock().unwrap();
+            let _ = ctx.cmd_tx.try_send(LuaCommand {
+                raw: format!("ECHO {}", text),
+            });
+            Ok(())
+        })?;
+        void_table.set("log", log_fn)?;
+    }
+
+    // ─── void.load(script) — load another Lua script ──
+    {
+        let ctx = ctx.clone();
+        let load_fn = lua.create_function(move |_, path: String| {
+            let ctx = ctx.lock().unwrap();
+            let _ = ctx.cmd_tx.try_send(LuaCommand {
+                raw: format!("LOAD {}", path),
+            });
+            Ok(())
+        })?;
+        void_table.set("load", load_fn)?;
+    }
+
+    // ─── void.exec(cmd) — execute shell command ──
+    {
+        let ctx = ctx.clone();
+        let exec_fn = lua.create_function(move |_, cmd: String| {
+            let ctx = ctx.lock().unwrap();
+            let _ = ctx.cmd_tx.try_send(LuaCommand {
+                raw: format!("EXEC {}", cmd),
+            });
+            Ok(())
+        })?;
+        void_table.set("exec", exec_fn)?;
     }
 
     lua.globals().set("void", void_table)?;
