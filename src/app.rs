@@ -388,7 +388,12 @@ impl App {
             flood: FloodProtection::new(flood_rate, flood_per),
             dcc: DccManager::new(&dcc_dir),
         };
-        app.system_message("Void IRC Client v0.1.0 — type /help for commands");
+        // MOTD — losowy ASCII art logo
+        for line in crate::motd::get_motd().lines() {
+            if !line.is_empty() {
+                app.system_message(line);
+            }
+        }
         app.load_config();
         app.load_from_db();
         app
