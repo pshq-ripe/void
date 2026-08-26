@@ -1,0 +1,65 @@
+#
+#   IRC Script Program. For use with ircii-EPIC5 clients.
+#   Copyright (C) 2000 SrfRoG (cag@codehack.com)
+#
+# ---------------------------------------------------------------------------
+# lice.help written by tjh for LiCe5 for EPIC5. tjh - tim@muppetz.com
+# https://lice.muppetz.com - LiCe5
+# ---------------------------------------------------------------------------
+#
+
+IF (word(2 $loadinfo()) != [pf]) {
+  LOAD -pf $word(1 $loadinfo());
+  RETURN;
+};
+
+PACKAGE LiCe;
+
+ALIAS help (topic, topic2, path) {
+  @ :temp.current_pwd = PWD;
+ 
+  ^CD $LiCePath/help/;
+  IF (!path) {@ path = LiCePath ## [/help/]};
+  @ isdir = 0;
+# Old /help functionality.
+  IF (topic2 && (topic2 != 1)) {
+    @ topic = LiCePath ## [/help/$topic/];
+    help $topic2 1 $topic;
+    RETURN;
+  };
+  IF (topic) { 
+    @ topic = tolower($topic);
+    @ file = [$path$topic];
+    @ cpath = path;
+    IF (left(1 $word(2 $stat("$file"))) == 4) {
+      @ isdir = 1;
+      @ newpath = LiCePath ## [/help/$topic/];
+      ^CD $newpath;
+      IF (fexist($newpath$topic) == 1) {_proc.disp_file $open($newpath$topic R);};
+      echo.recursive $glob(*);
+      # XECHO;
+      INPUT "Topic? " {
+        IF (@) {
+          IF (fexist($newpath$0) != -1) {
+            help $0 1 $newpath;
+          }{
+          uecho No such help topic;
+          };
+        };
+      };
+    };  
+    IF (fexist($file) == -1) {uecho No such help topic;RETURN;};
+    IF (isdir == 0) {
+      _proc.disp_file $open($file R);
+    };
+  }{
+  _proc.disp_file $open($LiCePath/help/index R);
+    INPUT "Topic? " {
+      IF (@) {help $tolower($0)};
+    };
+  };
+  ^CD $temp.current_pwd;
+};
+
+#tjh/11
+#tjbh/13

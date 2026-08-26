@@ -1,0 +1,36 @@
+Usage: SILENCE [+|-] < nick | n!u@h pattern >
+
+   Note: Only some servers support silence. This command will report
+   if your server doesn't support it.
+
+   By itself, /SILENCE will show you the list of n!u@h on your SILENCE
+   list.  SILENCE means the server won't send you any MESSAGES or NOTICES
+   from that mask.  You will still receive public messages.
+
+   If you specify a nick without a +/- it will display the silence list 
+   of the nick specified. You can only see this information if you're on
+   the same server as them.
+ 
+   If a + is supplied, that nick will be added to your silence list.
+   If a - is supplied, that nick will be removed from your silence list.
+
+   If a n!u@h pattern is specified in place of a nick, you will add or
+   remove that pattern from your silence list.
+
+Examples:
+   /SILENCE                      - Prints the list of what's on your
+                                   silence list.
+
+   /SILENCE +DonG                - Adds DonG to your silence list.
+   
+   /SILENCE -bartgeek            - Removes bartgeek from your silence
+                                   list.   
+
+   /SILENCE +*!*@*aol.com        - Adds '*!*@*aol.com' to your silence
+                                   list.
+
+   /SILENCE Dave-PZ              - Show Dave-PZ's silence list, if he's
+                                   on the same server as you.
+                                 
+See also: [NOIG] [IGNORE]
+

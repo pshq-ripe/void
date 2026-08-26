@@ -1,0 +1,47 @@
+#
+#   IRC Script Program. For use with ircii-EPIC5 clients.
+#   Copyright (C) 2000 SrfRoG (cag@codehack.com)
+#
+# ---------------------------------------------------------------------------
+# All code by SrfRoG, unless specified. Visit https://lice.muppetz.com
+# ---------------------------------------------------------------------------
+# Updated for EPIC5 by tjh
+# Updated to support halfop by tjh 13/05/2012
+
+IF (word(2 $loadinfo()) != [pf]) {
+  LOAD -pf $word(1 $loadinfo());
+  RETURN;
+};
+
+PACKAGE LiCe;
+
+# Description: gives some channel statistics
+ALIAS chanst {
+  @ :ch.name = ischannel($0) ? [$0] : C;
+  UNLESS (onchannel($N $ch.name)) {
+    IF (ch.name == [0]) {
+      XECHO -B You're not on a channel in this window.;
+      RETURN;
+    };
+    XECHO -B $ch($ch.name)\: You're not on that channel.;
+    RETURN;
+  };
+  @ :ch.o = 0;
+  @ :ch.ho = 0;
+  @ :ch.d = 0;
+  @ :ch.v = 0;
+  @ :ch.t = 0;
+  @ :ch.h = hash_32bit($ch.name);
+  @ :ch.b = numitems(B$winserv()\-$ch.h);
+  FE ($channel($ch.name)) ch.1 {
+    @ ch.t++;
+    IF (left(1 $ch.1) == [@]) { @ ch.o++ } 
+    ELSIF (left(1 $ch.1) == [%]) { @ ch.ho++ }
+    ELSIF  (mid(1 1 $ch.1) == [+]) { @ ch.v++ }{
+      @ ch.d++;
+    };
+  };
+  @ :sets = strlen($lice.get(chan[$ch.h][S])) ? [\(Sets\: \+] ## lice.get(chan[$ch.h][S]) ## [\)] : [];
+  XECHO -B Stats $ch($ch.name)\: \($ch.t\) +o[$ch.o] +h[$ch.ho] +v[$ch.v] -o[$ch.d] +b[$ch.b] $sets;
+};
+#tjh/12

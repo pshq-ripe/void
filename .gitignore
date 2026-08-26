@@ -1,0 +1,10 @@
+/target/
+*.log
+void.log
+*.db
+*.db-journal
+*.db-wal
+.DS_Store
+epic5/
+epic6/
+irc2.11.2p3/

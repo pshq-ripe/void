@@ -1,0 +1,28 @@
+#
+#   IRC Script Program. For use with ircii-EPIC5 clients.
+#   Copyright (C) 2000 SrfRoG (cag@codehack.com)
+#
+# ---------------------------------------------------------------------------
+# All code by SrfRoG, unless specified. Visit https://lice.muppetz.com
+# ---------------------------------------------------------------------------
+# Updated for EPIC5 by tjh
+
+IF (word(2 $loadinfo()) != [pf]) {
+  LOAD -pf $word(1 $loadinfo());
+  RETURN;
+};
+
+PACKAGE LiCe;
+
+ALIAS back {
+  IF ([$0] == [-a]) {
+    AWAY -all;
+    RETURN;
+  };
+  AWAY;
+  @ :target = ((T ? T : C) ? C : N);
+  UNLESS (ismset(Q) || [$[2]0] == [-q]) {
+    DESCRIBE $target is back. ${@?[$*]:randread($main.reason_back)};
+  };
+};
+#tjh/12

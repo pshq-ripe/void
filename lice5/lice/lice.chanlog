@@ -1,0 +1,89 @@
+#
+#   IRC Script Program. For use with ircii-EPIC5 clients.
+#   Copyright (C) 2000 whitefang (thall@magenet.com) - Broken email.
+#
+# ---------------------------------------------------------------------------
+# All code by whitefang, unless specified. Visit http://wolf.magenet.com
+# ---------------------------------------------------------------------------
+#
+# Prior to LiCe 5.3 this file was taken from whitefang's wolf addon for LiCe4
+# Since LiCe 5.3 we now use epic5's built in logging function.
+#
+
+IF (word(2 $loadinfo()) != [pf]) {
+  LOAD -pf $word(1 $loadinfo());
+  RETURN;
+};
+
+PACKAGE LiCe;
+
+# Setup logging
+@ mkdir($lice.save_path/logs);
+SET NO_CONTROL_LOG OFF;
+
+ALIAS chanlog {
+  UNLESS (@) {
+    uecho Usage: /CHANLOG -a <channel>;
+    uecho Usage: /CHANLOG -d <channel>;
+    uecho Usage: /CHANLOG -l;
+    RETURN;
+  };
+  @ :opts = [];
+  WHILE (opts = getopt(optopt optarg "a:d:l::" $*)) {
+    @ :chan = stripcrap(ALL $optarg);
+    UNLESS (ischannel($chan)) {@ :chan = [#] ## chan};
+    @ :hash = hash_32bit($chan);
+    SWITCH ($opts) {
+      (a) {
+        IF (lice.get(![$hash][C]) == [$chan]) {
+          iecho Already logging $chan;
+          RETURN;
+        };
+        _proc.startlog $chan;
+        @lice.set(![$hash][C] $chan);
+        iecho Chanlog: logging $chan to $lice.save_path/logs/$tolower($chan)\.log;
+      };
+      (d) {
+        UNLESS (lice.get(![$hash][C]) == [$chan]) {
+          iecho $chan isn't being logged, unable to delete;
+          RETURN;
+        };
+        FE ($logctl(REFNUMS ALL)) logs {
+          IF ((logctl(GET $logs NAME)) == [$chan]) {
+            @ :rmlog = logs;
+            CONTINUE;
+          };
+        };
+        //^LOG $rmlog KILL;
+        @lice.del(![$hash][C]);
+        iecho Chanlog: no longer logging $chan;
+      };
+      (l) {
+        iecho +$repeat(5 -) Logging $repeat(2 -)+$repeat(51 -)+$repeat(14 -)+;
+        iecho | Channel $repeat(6  ) | Path $repeat(44  ) | Size $repeat(8  )|;
+        iecho +$repeat(16 -)+$repeat(51 -)+$repeat(14 -)+;
+        FE ($logctl(REFNUMS ALL)) logs {
+          @ :chan = logctl(GET $logs NAME);
+          @ :file = lice.save_path ## [/logs/] ## tolower($chan) ## [\.log];
+          @ :pad1 = (15 - strlen($chan));
+          @ :pad2 = (50 - strlen($file));
+          iecho   $logctl(GET $logs NAME) $repeat($pad1  ) $file $repeat($pad2  ) $fsize($file);
+        };
+      };
+    }};
+  };
+};
+
+ALIAS _proc.startlog (channel) {
+  //^LOG NEW NAME $channel FILENAME $lice.save_path/logs/$tolower($channel)\.log ADD $channel MANGLE ALL SERVER -2 REWRITE "$$strftime($lice.get(main.tsfmt)) $$1-" ON;
+};
+
+ALIAS _proc.uplogtsfmt {
+  FE ($logctl(REFNUMS ALL)) logs {
+    //^LOG $logs REWRITE "$$strftime($lice.get(main.tsfmt)): $$1-";
+  };
+};
+
+#Hacked into LiCe beautifully, before epic supported logging, by tjbh/2000 - wolf script
+#Rewrite for epic's built-in logging by tjh
+#tjh/14

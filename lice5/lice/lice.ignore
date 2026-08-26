@@ -1,0 +1,58 @@
+#
+#   IRC Script Program. For use with ircii-EPIC5 clients.
+#   Copyright (C) 2000 SrfRoG (cag@codehack.com)
+#
+# ---------------------------------------------------------------------------
+# All code by SrfRoG, unless specified. Visit https://lice.muppetz.com
+# ---------------------------------------------------------------------------
+# Updated for EPIC5 by tjh
+
+IF (word(2 $loadinfo()) != [pf]) {
+  LOAD -pf $word(1 $loadinfo());
+  RETURN;
+};
+
+PACKAGE LiCe;
+
+ALIAS ignore {
+  @ :types = strlen($1) ? [$1-] : [MSGS WALLS WALLOPS INVITES NOTICES SNOTES CTCPS TOPICS NICKS JOINS PARTS CRAP];
+  IF (match(timeout $1-)) {@ :tempig = 1};
+  SWITCH ($0) {
+    () {
+      uecho Usage: IGNORE < nick | n!u@h pattern > [[-|+]Ignore types] [reason "your reason"] [timeout <time in secs>];
+      uecho Usage: IGNORE < channel | channel pattern > [[-|+]Ignore types] [reason "your reason"] [timeout <time in secs>];
+    }
+    (#*) (&*) (!*) {//IGNORE $0 $types; UNLESS (tempig) {@lice.set(|$hash_32bit($0) $0 $igtype($0) REASON \"$ignorectl(GET $ignorectl(REFNUM $0) REASON)\")}};
+    (*!*) (*@*) (*.*) {//IGNORE $uhc($0) $types; UNLESS (tempig) {@lice.set(|$hash_32bit($uhc($0)) $0 $igtype($uhc($0)) REASON \"$ignorectl(GET $ignorectl(REFNUM $uhc($0)) REASON)\")}};
+    (*) {
+      @ :user = get_uh($0);
+      UNLESS (strlen($user)) {
+        XECHO -B $0: Nick not online.;
+        RETURN;
+      };
+      @ :pattern = mask(0 $0!$user);
+      //IGNORE $pattern $types;
+      UNLESS (tempig) {@lice.set(|$hash_32bit($pattern) $pattern $igtype($pattern) REASON \"$ignorectl(GET $ignorectl(REFNUM $pattern) REASON)\")};
+    };
+  };
+};
+
+ALIAS protect {
+  UNLESS (rmatch(*!*@*.* $igmask(*)) > 0) {
+    //IGNORE *!*@*.* ALL;
+    IF (_proc.silence()) {//^SILENCE +*@*};
+    IF (_proc.callerid() && !count(g $usermode())) {
+      ^ASSIGN callerid_test = 1;
+      //MODE $servernick() +g;
+    };
+  }{
+    //IGNORE *!*@*.* NONE;
+    IF (_proc.silence()) {//^SILENCE -*@*};
+    IF (_proc.callerid() && count(g $usermode()) && callerid_test) {
+      //MODE $servernick() -g;
+      ^ASSIGN -callerid_test;
+    };
+  };
+};
+#HS/03
+#tjh/15

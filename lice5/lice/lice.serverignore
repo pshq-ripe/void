@@ -1,0 +1,71 @@
+#
+#   IRC Script Program. For use with ircii-EPIC5 clients.
+#   Copyright (C) 2014 tjh (tim@muppetz.com)
+#
+# ---------------------------------------------------------------------------
+# All code by tjh, unless specified. Visit https://lice.muppetz.com
+# ---------------------------------------------------------------------------
+
+# Silence originally written by HSOC, heavily modified to support silence toggle by tjh
+# CallerID/Accept support added by tjh
+
+IF (word(2 $loadinfo()) != [pf]) {
+  LOAD -pf $word(1 $loadinfo());
+  RETURN;
+};
+
+PACKAGE LiCe;
+
+### Silence
+ALIAS silence {
+  UNLESS (_proc.silence()) {iecho $S does not support silence.;RETURN};
+  IF (match($left(1 $0) + -)) {
+     @ sil.sign = left(1 $0);
+     @ sil.dork = rest(1 $0);
+     UNLESS (rmatch($0 *!* *@* *.*)) {
+        USERHOST $sil.dork -CMD UNLESS ([$4]==[<UNKNOWN>] || [$4]==[]) {
+           //SILENCE $sil.sign*@$4;
+           //SILENCE $sil.sign$sil.dork*;
+        }{//SILENCE $sil.sign$sil.dork*}
+     }{//SILENCE $0}
+  }{
+    @ sil.cnt = 1;
+    @ sil.pers = (@ ? [$0] : [$N]);
+    iecho ---- Silence List for $sil.pers@$S;
+    ^ON ^271 * {
+      @ sil.mask = [$2];
+      iecho [$[2]sil.cnt] $sil.mask;
+      @sil.cnt++;
+    };
+  //SILENCE $sil.pers;
+  };
+};
+
+ON ^272 * {
+  iecho ---- End of Silence List;
+  purge sil;
+};
+
+### CallerID / Accept (usermode +g)
+ALIAS accept {
+  UNLESS (_proc.callerid()) {iecho $S does not support callerid.;RETURN};
+  UNLESS (rmatch($0 -L -A -D)) {
+    uecho Usage: /ACCEPT -l;
+    uecho Usage: /ACCEPT -a <nick1 [nick2...nicks]>;
+    uecho Usage: /ACCEPT -d <nick1 [nick2...nicks]>;
+    RETURN;
+  }{
+    SWITCH ($0) {
+     (-A) {XQUOTE ACCEPT $unsplit(, $1-)};
+     (-D) {XQUOTE ACCEPT -$sar(g/,/,-/$unsplit(, $1-))};
+     };
+    iecho Accept List for $N;
+    ^ON ^281 * {XECHO $fmt.sc_mid($1-)};
+    ^ON ^282 * { ^ON ^281 -};
+    XQUOTE ACCEPT *;
+  };
+};
+
+ALIAS _proc.silence {@:FUNCTION_RETURN = (MATCH(SILENCE $serverctl(GET $serverctl(FROM_SERVER) 005s))) > 0): 0 ? 1};
+ALIAS _proc.callerid {@:FUNCTION_RETURN = (MATCH(CALLERID $serverctl(GET $serverctl(FROM_SERVER) 005s))) > 0): 0 ? 1};
+#tjh/16

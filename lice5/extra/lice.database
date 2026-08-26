@@ -1,0 +1,146 @@
+# lice.database
+# ---------------------------------------------------------------------------
+# LiCe Database Editor/Viewer for epic5's $dbmctl() 
+# ---------------------------------------------------------------------------
+#
+# Written by tjh 2012 - tim@muppetz.com
+# Minor updates in 2016 - tim@muppetz.com
+#
+# Much help and guidance from #epic on efnet.  Couldn't have written this
+# without the help of hop, caf, CrazyEddy & many other helpful friendly souls
+# in there. Thanks!
+#
+#
+IF (word(2 $loadinfo()) != [pf]) {
+  LOAD -pf $word(1 $loadinfo());
+  RETURN;
+};
+
+# database editor version
+ASSIGN db.ev 1.2;
+UNLESS (id.v) {XECHO -B What? You need to have loaded LiCe 5.2.0+ first before you can edit its Database!;RETURN}
+
+XECHO;
+XECHO +--------------------------------------------------------+;
+XECHO          Database Editor v$db.ev for LiCe $id.v;
+XECHO;
+XECHO   /dblist		- Database list/search commands;
+XECHO   /dbedit		- Database editing commands;
+
+# This routine lets you edit/change/delete and create database variables.  
+# Which is kinda useful really for an "editor" right?
+ALIAS dbedit {
+  UNLESS (([$0]) && ([$1])) {
+    XECHO -B Usage: /dbedit <option>;
+    XECHO -B;
+    XECHO -B  -c <variable>  Create <variable>;
+    XECHO -B  -e <variable>  Edit the contents of <variable>;
+    XECHO -B  -r <variable>  Rename <variable>;
+    XECHO -B  -d <variable>  Delete <variable>;
+    RETURN;
+  };
+  UNLESS (finddb($1) | [$0] == [-c]) {XECHO ERROR: $1 doesn't exist in the database;RETURN};
+  @ dbvar = [$1];
+  @ dbval = dbmctl(READ $lice.fd $1); 
+  SWITCH ($0) {
+    (-e)  {
+      INPUT "New value for $1: " {
+        IF (@ && [$*] != [$dbval]) {
+          @ dbmctl(CHANGE $lice.fd $dbvar $*);
+          XECHO $dbvar changed to: $*;
+        }{
+          XECHO $dbvar unchanged;
+        };
+      };
+      XTYPE -literal $dbmctl(READ $lice.fd $dbvar);
+    };
+    (-d)  {@ dbmctl(DELETE $lice.fd $dbvar); XECHO $dbvar Deleted;}
+    (-c)  {
+      UNLESS (!finddb($1)) {XECHO ERROR: $1 already exists in the database!;RETURN};
+      INPUT "New value for new variable $1: " {
+          @ dbmctl(ADD $lice.fd $dbvar $*);
+          XECHO $dbvar created with value: $*;
+        };
+      };
+    (-r) {
+      INPUT "Rename $1 to: " {
+        @dbmctl(ADD $lice.fd $0 $dbmctl(READ $lice.fd $dbvar));
+        @dbmctl(DELETE $lice.fd $dbvar);
+        XECHO $dbvar renamed to: $0;
+      };
+    };    
+  };
+};
+
+# This routine resets the database to the start and loops over them all returning
+# their values.  The dump is completed when the next read of the database returns
+# null.  Some filtering/search capabilities are included, these still loop over
+# the whole database as there's no way to search within in.
+#
+ALIAS dblist {
+  UNLESS (@) {
+    XECHO -B Usage: /db <option>;
+    XECHO -B;
+    XECHO -B  -k         List all database variables.;
+    XECHO -B  -a         List all database variables and contents.;
+    XECHO -B  -f <text>  Find variable names containing <text>;
+    XECHO -B  -d <text>  Find variable contents containing <text>;
+    XECHO -B  -ac        List all database variables and contents, stripped of control chars;
+    XECHO -B  -fa <text> Find variable names containing <text>, stripped of control chars;
+    XECHO;
+    RETURN;
+  };
+  XECHO;
+  XECHO $repeat(15  ) [Database: $lice.save_path/lice.db];
+  @ :endfile = :position = :matchcount = 0;
+  XECHO Variable $repeat(37  ) Value;
+  XECHO $repeat(70 =);
+  WHILE (endfile != 1) {
+    IF (position == 0)  {
+      @ item = dbmctl(NEXT_KEY $lice.fd 1);
+    }{
+      @ item = dbmctl(NEXT_KEY $lice.fd 0);
+    };
+    @ position++;
+    @ itemdata = dbmctl(READ $lice.fd $item);
+    UNLESS (item) {
+      @ endfile = 1;
+      @ position--;
+      XECHO $repeat(70 =);
+      IF (matchcount == 0) {XECHO Nothing found!}{XECHO Total Items: $matchcount};
+    }{
+      SWITCH ($0) {
+        (-a) 	{ XECHO $item $repeat(${45 - strlen($item)}  ) $itemdata; @ matchcount++};
+	(-k)  	{ XECHO $item; @ matchcount++};
+        (-ac) 	{ XECHO $stripcrap(ALL $item) $repeat(${45 - strlen($item)}  ) $stripcrap(ALL $itemdata); @ matchcount++};
+        (-f) 	{ IF (match(*$1* $item)) {XECHO $item $repeat(${45 - strlen($item)}  ) $itemdata; @ matchcount++}};
+        (-fa) 	{ IF (match(*$1* $stripcrap(ALL $itemdata))) {XECHO $stripcrap(ALL $item) $repeat(${45 - strlen($item)}  ) $stripcrap(ALL $itemdata); @ matchcount++}};
+        (-d) 	{ IF (match(*$1* $itemdata)) {XECHO $item $repeat(${45 - strlen($item)}  ) $itemdata; @ matchcount++}};
+        (*) 	{ XECHO Unsupported flag;RETURN};
+      };
+    };
+  };
+};
+
+# We walk through the database looking for $query
+# If we find it exactly, we return 1 to the calling
+# function.  Lets you confirm a variable name exists.
+ALIAS finddb (query) {
+  @ :endfile = :position = 0;
+  WHILE (endfile != 1) {
+    IF (position == 0)  {
+      @ item = dbmctl(NEXT_KEY $lice.fd 1);
+    }{
+      @ item = dbmctl(NEXT_KEY $lice.fd 0);
+    };
+    @ position++;
+    IF ([$item] == [$query]) {RETURN 1};
+    UNLESS (item) {
+      @ endfile = 1;
+      @ position--;
+      };
+    };
+  };
+};
+
+#tjh/16

@@ -1,0 +1,40 @@
+#
+#   IRC Script Program. For use with ircii-EPIC4 clients.
+#   Copyright (C) 2000 SrfRoG (cag@codehack.com)
+#
+# ---------------------------------------------------------------------------
+# All code by SrfRoG, unless specified. Visit https://lice.muppetz.com
+# ---------------------------------------------------------------------------
+
+IF (word(2 $loadinfo()) != [pf]) {
+  LOAD -pf $word(1 $loadinfo());
+  RETURN;
+};
+
+PACKAGE LiCe;
+
+ALIAS noig {
+  @ :list = igmask(*);
+  UNLESS (strlen($list)) {
+    //IGNORE;
+    RETURN;
+  };
+  iecho ---- Ignore Pattern ----------------------------------- Types ----------------;
+  @ :cnt = 1;
+  FE ($list) patt {
+    @ :reason = ignorectl(GET $ignorectl(REFNUM $patt) REASON);
+    @ :timeout = word(0 $ignorectl(GET $ignorectl(REFNUM $patt) EXPIRATION));
+    iecho [$[2]cnt] $[50]patt $igtype($patt) ${(strlen($reason))?[\[Reason: $reason\]]:[]} ${(timeout)?[\[Expires: ${timeout - time()}\s\]]:[]};
+    @cnt++;
+  };
+  INPUT "Select # to unignore, * for all (ENTER cancels): " IF (@) {
+    @ :list = igmask(*);
+    IF (isnumber($0) || [$[1]0]==[#]) {
+      @ :cnt = pass(0123456789 $0) - 1;
+      //IGNORE $word($cnt $list) NONE;
+      @lice.del(|$hash_32bit($word($cnt $list)));
+    };
+    IF ([$0]==[*]) {FE ($list) patt {//IGNORE $patt NONE;@lice.del(|$hash_32bit($patt))}};
+  };
+};
+#tjh/15

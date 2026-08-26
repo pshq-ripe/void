@@ -1,0 +1,80 @@
+#
+#   IRC Script Program. For use with ircii-EPIC5 clients.
+#   Copyright (C) 2000 SrfRoG (cag@codehack.com)
+#
+# ---------------------------------------------------------------------------
+# All code by SrfRoG, unless specified. Visit https://lice.muppetz.com
+# ---------------------------------------------------------------------------
+# Updated for EPIC5 by tjh
+# Support for halfop added by tjh 7/5/2012
+
+IF (word(2 $loadinfo()) != [pf]) {
+  LOAD -pf $word(1 $loadinfo());
+  RETURN;
+};
+
+PACKAGE LiCe;
+
+# Mass commands
+ALIAS _proc.mass_match (mode,patt) {
+  get_user_match $C $patt temp_list;
+  @ temp_list = remw($N $temp_list);
+  FE ($temp_list) nick {
+    SWITCH ($mode) {
+      (+k) {PUSH mass_list $nick};
+      (+o) {IF (ischanop($nick $C)) {PUSH mass_list $nick}};
+      (-h) {IF (ishalfop($nick $C)) {PUSH mass_list $nick}};
+      (+h) {UNLESS (ishalfop($nick $C)) {PUSH mass_list $nick}};
+      (-k) (-o) {UNLESS (ischanop($nick $C)) {PUSH mass_list $nick}};
+      (+v) {IF (ischanvoice($nick $C)) {PUSH mass_list $nick}};
+      (-v) {UNLESS (ischanvoice($nick $C)) {PUSH mass_list $nick}};
+    };
+  };
+  ^ASSIGN -temp_list;
+};
+
+ALIAS mass {
+  IF (@) {
+    @ :mass.p = strlen($1) ? uhc($1) : [*!*];
+    SWITCH ($0) {
+      (-d) {
+        _proc.mass_match +o $mass.p;
+        _proc.loop_mode $winserv() - o $C mass_list;
+      };
+      (-n) {
+        _proc.mass_match +h $mass.p;
+        _proc.loop_mode $winserv() - h $C mass_list;
+      };
+      (-k) {
+        @ mass_msg = strlen($2) ? [$2-] : randread($main.reason_kick);
+        _proc.mass_match +k $mass.p mass_list;
+        _proc.loop_kick $winserv() $C mass_list mass_msg;
+      };
+      (-l) {
+        @ mass_msg = strlen($2) ? [$2-] : randread($main.reason_kick);
+        _proc.mass_match -k $mass.p mass_list;
+        _proc.loop_kick $winserv() $C mass_list mass_msg;
+      };
+      (-o) {
+        _proc.mass_match -o $mass.p;
+        _proc.loop_mode $winserv() + o $C mass_list;
+      };
+      (-h) {
+        _proc.mass_match -h $mass.p;
+        _proc.loop_mode $winserv() + h $C mass_list;
+      };
+      (-q) {
+        _proc.mass_match +v $mass.p;
+        _proc.loop_mode $winserv() - v $C mass_list;
+      };
+      (-v) {
+        _proc.mass_match -v $mass.p;
+        _proc.loop_mode $winserv() + v $C mass_list;
+      };
+    };
+  }{
+    uecho Usage: /MASS <-d|-o|-n|-h|-q|-v> [pattern];
+    uecho Usage: /MASS <-k|-l> [pattern [reason]];
+  };
+};
+#tjh/15

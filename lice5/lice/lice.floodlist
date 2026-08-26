@@ -1,0 +1,59 @@
+#
+#   IRC Script Program. For use with ircii-EPIC5 clients.
+#   Copyright (C) 2000 SrfRoG (cag@codehack.com)
+#
+# ---------------------------------------------------------------------------
+# All code by SrfRoG, unless specified. Visit https://lice.muppetz.com
+# ---------------------------------------------------------------------------
+# Updated for EPIC5 by tjh
+
+IF (word(2 $loadinfo()) != [pf]) {
+  LOAD -pf $word(1 $loadinfo());
+  RETURN;
+};
+
+PACKAGE LiCe;
+
+# Description: flood protection routines
+ALIAS _proc.flood_nick (type,nick,uh,serv) {
+  IF (_proc.silence()) {
+    //^SILENCE +*@*;
+    ^TIMER -REF SISOLATE $lice.get(main.isolate) //^SILENCE -*@*;
+  };
+  IF (_proc.callerid() && !count(g $usermode())) {
+    //^MODE $servernick() +g;
+    ^TIMER -REF CIDISOLATE $lice.get(main.isolate) //^MODE $servernick() -g;
+  };
+  //^IGNORE *!*@* MSGS CTCPS INVITES NOTICES NOTES NICKS TIMEOUT $lice.get(main.isolate);
+  XECHO -W $winnum() $fmt.banner_alert() Alert: Isolating client for $lice.get(main.isolate)\s due to flood;
+  //^IGNORE $mask(3 $nick!$uh) $type REASON "$type FLOOD" ${lice.get(main.auto_noig) > 0 ? [TIMEOUT $lice.get(main.auto_noig)] : []};
+  UNLESS (lice.get(main.auto_noig) > 0) {@lice.set(|$hash_32bit($uh) $uh $igtype($mask(3 $uh)) REASON "$type FLOOD")};
+  ECHO $fmt.banner_alert() Alert: $type flood detected from $nick \($uh\);
+  UNLESS (isset(Q) || type == [PUBLICS] || type == [NICK] || type == [JOIN] || type == [PART]) {
+    XQUOTE -S $serv NOTICE $nick :$type Flood! You'll be ignored now. $randread($main.reason_error);
+  };
+  IF (ismset(U)) {_proc.away_save LiCe licelogd $type FLOOD from $nick \($uh\)};
+};
+
+ALIAS _proc.flood_chan (type,nick,uh,serv,chan,hash) {
+  IF (ischanop($servernick($serv) $chan)) {
+    IF (iscset(F $hash) || type == [JOINS] || type == [PARTS]) {
+      @ :ban = iscset(1 $hash) ? mask(4 $uh) : mask(2 $uh);
+      _proc.ban $chan $serv $ban $nick $hash;
+    };
+    IF (iscset(C $hash)) {
+      _proc.quote_add $serv KICK $chan $nick :[$type FLOOD];
+      _proc.quote_flush $serv;
+    };
+  };
+  XECHO -W $chanwin($chan) $fmt.banner_alert() Alert: [$chan] $type flood detected from $nick \($uh\);
+  IF (ismset(U)) {_proc.away_save LiCe licelogd [$chan] $type FLOOD from $nick \($uh\)};
+  IF (iscset(S $hash)) {
+    @ :ban = iscset(1 $hash) ? mask(3 $uh) : mask(1 $uh);
+    ^_proc.ul_add Shit $nick $ban;
+    ^_proc.ul_chg_chan Shit $nick + $chan FK AutoShit on $strftime(%x) for $type FLOOD!;
+    ^_proc.ul_save;
+  };
+};
+#tjh/15
+#tjbh/13
