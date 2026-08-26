@@ -100,6 +100,9 @@ impl CommandRegistry {
         self.register("UNALIAS", &[], "/unalias <name> — Remove alias", cmd_unalias);
         self.register("IF", &[], "/if <cond> <then> [else <else>] — Conditional execution", cmd_if);
         self.register("WHILE", &[], "/while <cond> <body> — Loop while condition true", cmd_while);
+        self.register("FOR", &[], "/for <var> <start> <end> <body> — For loop", cmd_for);
+        self.register("WAIT", &[], "/wait <seconds> <command> — Wait then execute", cmd_wait);
+        self.register("REDIRECT", &[], "/redirect <target> <command> — Redirect output to target", cmd_redirect);
 
         // ─── Highlight / Load / Bind ──────────────────────
         self.register("HIGHLIGHT", &["hilight"], "/highlight [pattern] [color] — Add/remove highlight patterns", cmd_highlight);
@@ -1044,6 +1047,80 @@ fn cmd_while(app: &mut App, args: &[&str]) -> CommandResult {
     }
     if iterations >= MAX_ITERATIONS {
         app.system_message("-!- /while: iteration limit reached (100)");
+    }
+    CommandResult::Ok
+}
+
+fn cmd_for(app: &mut App, args: &[&str]) -> CommandResult {
+    // /for <var> <start> <end> <command>
+    if args.len() < 4 {
+        return CommandResult::Error("Usage: /for <var> <start> <end> <command>".into());
+    }
+    let var_name = args[0];
+    let start: i64 = args[1].parse().unwrap_or(0);
+    let end: i64 = args[2].parse().unwrap_or(0);
+    let body = args[3..].join(" ");
+    let mut iterations = 0;
+    const MAX_ITERATIONS: usize = 1000;
+
+    let mut i = start;
+    while i <= end && iterations < MAX_ITERATIONS {
+        // Replace $var with current value
+        let expanded = body.replace(&format!("${}", var_name), &i.to_string());
+        if expanded.starts_with('/') {
+            let parts: Vec<&str> = expanded.split_whitespace().collect();
+            let cmd_name = &parts[0][1..];
+            let cmd_args = &parts[1..];
+            if let Some(cmd) = CommandRegistry::new().find(cmd_name) {
+                let handler = cmd.handler;
+                handler(app, cmd_args);
+            }
+        }
+        i += 1;
+        iterations += 1;
+    }
+    if iterations >= MAX_ITERATIONS {
+        app.system_message("-!- /for: iteration limit reached (1000)");
+    }
+    CommandResult::Ok
+}
+
+fn cmd_wait(app: &mut App, args: &[&str]) -> CommandResult {
+    if args.len() < 2 {
+        return CommandResult::Error("Usage: /wait <seconds> <command>".into());
+    }
+    let seconds: f64 = args[0].parse().unwrap_or(1.0);
+    let command = args[1..].join(" ");
+    app.system_message(&format!("-!- Waiting {}s then executing: {}", seconds, command));
+    // Add as a one-shot timer
+    app.timers.push(crate::app::TimerEntry {
+        name: format!("wait_{}", app.timers.len()),
+        interval_ms: (seconds * 1000.0) as u64,
+        repeat: 1,
+        command,
+        next_fire: std::time::Instant::now() + std::time::Duration::from_secs_f64(seconds),
+        remaining: 1,
+    });
+    CommandResult::Ok
+}
+
+fn cmd_redirect(app: &mut App, args: &[&str]) -> CommandResult {
+    if args.len() < 2 {
+        return CommandResult::Error("Usage: /redirect <target> <command>".into());
+    }
+    let target = args[0];
+    let command = args[1..].join(" ");
+    app.system_message(&format!("-!- Redirect {} -> {}", command, target));
+    // Execute command and redirect output to target
+    // For now, just execute the command
+    if command.starts_with('/') {
+        let parts: Vec<&str> = command.split_whitespace().collect();
+        let cmd_name = &parts[0][1..];
+        let cmd_args = &parts[1..];
+        if let Some(cmd) = CommandRegistry::new().find(cmd_name) {
+            let handler = cmd.handler;
+            handler(app, cmd_args);
+        }
     }
     CommandResult::Ok
 }
