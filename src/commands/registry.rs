@@ -138,6 +138,9 @@ impl CommandRegistry {
         self.register("KNOCK", &[], "/knock <#channel> [message] — Knock on invite-only channel", cmd_knock);
         self.register("OPER", &[], "/oper <login> <password> — IRC OPER login", cmd_oper);
         self.register("KILL", &[], "/kill <nick> [reason] — IRC KILL a user", cmd_kill);
+        self.register("SILENCE", &[], "/silence [mask] — Server-side ignore (SILENCE)", cmd_silence);
+        self.register("SETNAME", &[], "/setname <realname> — Change realname on the fly", cmd_setname);
+        self.register("CAPLIST", &[], "/caplist — List active IRCv3 capabilities", cmd_caplist);
 
         // ─── Dodatkowe epic5 / irc2.11 style ────────────
         self.register("WALLOPS", &[], "/wallops <text> — Send wallops", cmd_wallops);
@@ -1813,6 +1816,63 @@ fn cmd_kill(app: &mut App, args: &[&str]) -> CommandResult {
         ));
     }
     app.system_message(&format!("-!- KILL sent for {}", nick));
+    CommandResult::Ok
+}
+
+fn cmd_silence(app: &mut App, args: &[&str]) -> CommandResult {
+    if args.is_empty() {
+        if let Some(s) = &app.server().sender {
+            let _ = s.send(irc::client::prelude::Command::Raw("SILENCE".into(), Vec::new()));
+        }
+        app.system_message("-!- Requesting silence list...");
+    } else {
+        let mask = args[0];
+        if mask.starts_with('-') {
+            let mask = &mask[1..];
+            if let Some(s) = &app.server().sender {
+                let _ = s.send(irc::client::prelude::Command::Raw(
+                    format!("SILENCE -{}", mask), Vec::new()
+                ));
+            }
+            app.system_message(&format!("-!- Silence removed: {}", mask));
+        } else {
+            if let Some(s) = &app.server().sender {
+                let _ = s.send(irc::client::prelude::Command::Raw(
+                    format!("SILENCE +{}", mask), Vec::new()
+                ));
+            }
+            app.system_message(&format!("-!- Silence added: {}", mask));
+        }
+    }
+    CommandResult::Ok
+}
+
+fn cmd_setname(app: &mut App, args: &[&str]) -> CommandResult {
+    if args.is_empty() {
+        return CommandResult::Error("Usage: /setname <realname>".into());
+    }
+    let realname = args.join(" ");
+    if let Some(s) = &app.server().sender {
+        let _ = s.send(irc::client::prelude::Command::Raw(
+            format!("SETNAME :{}", realname), Vec::new()
+        ));
+    }
+    app.system_message(&format!("-!- Realname set to: {}", realname));
+    CommandResult::Ok
+}
+
+fn cmd_caplist(app: &mut App, _args: &[&str]) -> CommandResult {
+    app.system_message("-!- Active IRCv3 capabilities:");
+    let tokens: Vec<(String, String)> = app.server().server_info.tokens.iter()
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
+    for (key, value) in tokens {
+        if value.is_empty() {
+            app.system_message(&format!("  {}", key));
+        } else {
+            app.system_message(&format!("  {}={}", key, value));
+        }
+    }
     CommandResult::Ok
 }
 
