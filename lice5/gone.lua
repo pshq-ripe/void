@@ -73,6 +73,27 @@ function lice5.gone.set_back(msg)
     void.echo("-!- You are back (" .. mins .. "m " .. secs .. "s): " .. back_msg)
 end
 
+-- Auto-away support (merged from away.lua)
+lice5.gone.auto_away = false
+lice5.gone.auto_away_time = 600  -- seconds
+lice5.gone.last_activity = os.time()
+
+function lice5.gone.check_auto()
+    if not lice5.gone.auto_away then return end
+    if lice5.gone.away_since then return end
+    local idle = os.time() - lice5.gone.last_activity
+    if idle > lice5.gone.auto_away_time then
+        lice5.gone.set_away("Auto-away (idle " .. math.floor(idle/60) .. "m)")
+    end
+end
+
+-- Track activity for auto-away
+void.on("PUBLIC", "lice5_gone_activity")
+void.on("MSG", "lice5_gone_activity")
+function lice5_gone_activity(args)
+    lice5.gone.last_activity = os.time()
+end
+
 -- Initialize
 lice5.gone.load_reasons()
 
@@ -97,4 +118,23 @@ void.register_command("BACK", "lice5_cmd_back")
 function lice5_cmd_back(args)
     local msg = #args > 0 and table.concat(args, " ") or nil
     lice5.gone.set_back(msg)
+end
+
+-- Command: /autoaway [seconds] — toggle/set auto-away
+void.register_command("AUTOAWAY", "lice5_cmd_autoaway")
+function lice5_cmd_autoaway(args)
+    if #args == 0 then
+        local status = lice5.gone.auto_away and "ON" or "OFF"
+        void.echo("-!- Auto-away: " .. status .. " (" .. lice5.gone.auto_away_time .. "s)")
+    elseif args[1] == "on" then
+        lice5.gone.auto_away = true
+        void.echo("-!- Auto-away enabled (" .. lice5.gone.auto_away_time .. "s)")
+    elseif args[1] == "off" then
+        lice5.gone.auto_away = false
+        void.echo("-!- Auto-away disabled")
+    else
+        lice5.gone.auto_away_time = tonumber(args[1]) or 600
+        lice5.gone.auto_away = true
+        void.echo("-!- Auto-away set to " .. lice5.gone.auto_away_time .. " seconds")
+    end
 end

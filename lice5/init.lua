@@ -36,11 +36,11 @@ lice5.load("autovoice")       -- Auto-voice on join
 lice5.load("anti_flood")      -- Anti-flood protection
 lice5.load("highlight")       -- Nick/pattern highlight
 lice5.load("ctcp")            -- Enhanced CTCP replies
-lice5.load("away")            -- Away system with auto-away
+-- away: merged into gone.lua (random reasons + auto-away)
 lice5.load("nickserv")        -- NickServ auto-identify + ghost
 lice5.load("channel_protect") -- Anti-kick, anti-deop
-lice5.load("statusbar")       -- Status bar enhancements
-lice5.load("keybinds")        -- Custom key bindings
+-- statusbar: native /status command handles this
+-- keybinds: native /bind command handles this
 
 -- Count loaded modules
 local count = 0
