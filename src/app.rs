@@ -526,6 +526,7 @@ impl App {
                 c.current_channel = self.buffers[self.current_buffer_idx].name.clone();
                 c.server_host = self.server().host.clone();
                 c.connected = self.server().connected;
+                c.settings = self.settings.map.clone();
             }
         }
     }

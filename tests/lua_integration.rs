@@ -19,6 +19,7 @@ fn lua_integration_test() {
         server_host: "irc.test.com".into(),
         connected: true,
         cmd_tx,
+        settings: std::collections::HashMap::new(),
     }));
 
     // 3. Register API

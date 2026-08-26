@@ -1224,8 +1224,34 @@ fn cmd_log(app: &mut App, args: &[&str]) -> CommandResult {
 
 fn cmd_eval(app: &mut App, args: &[&str]) -> CommandResult {
     let text = args.join(" ");
-    app.system_message(&format!("-!- Eval: {}", text));
-    // Placeholder — pełna ewaluacja będzie delegowana do silnika Lua
+    let lua_ref = app.lua.clone();
+    if let Some(lua) = lua_ref {
+        match lua.load(&text).eval::<mlua::Value>() {
+            Ok(mlua::Value::String(s)) => {
+                app.system_message(&format!("-!- Eval: {}", s.to_string_lossy()));
+            }
+            Ok(mlua::Value::Integer(n)) => {
+                app.system_message(&format!("-!- Eval: {}", n));
+            }
+            Ok(mlua::Value::Number(n)) => {
+                app.system_message(&format!("-!- Eval: {}", n));
+            }
+            Ok(mlua::Value::Boolean(b)) => {
+                app.system_message(&format!("-!- Eval: {}", b));
+            }
+            Ok(mlua::Value::Nil) => {
+                app.system_message("-!- Eval: nil");
+            }
+            Ok(_) => {
+                app.system_message("-!- Eval: (complex value)");
+            }
+            Err(e) => {
+                app.system_message(&format!("-!- Eval error: {}", e));
+            }
+        }
+    } else {
+        app.system_message(&format!("-!- Eval: {} (Lua engine not available)", text));
+    }
     CommandResult::Ok
 }
 
@@ -1316,26 +1342,57 @@ fn cmd_load(app: &mut App, args: &[&str]) -> CommandResult {
         return CommandResult::Error("Usage: /load <script.lua>".into());
     }
     let path = args[0];
-    match std::fs::read_to_string(path) {
-        Ok(script) => {
-            app.system_message(&format!("-!- Loading script: {}", path));
-            // Script will be executed by the Lua engine on next opportunity
-            // For now, just report success
-            app.system_message(&format!("-!- Script loaded: {} ({} bytes)", path, script.len()));
+    let script = match std::fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(e) => return CommandResult::Error(format!("Cannot load {}: {}", path, e)),
+    };
+    app.system_message(&format!("-!- Loading script: {}", path));
+    let lua_ref = app.lua.clone();
+    if let Some(lua) = lua_ref {
+        match lua.load(&script).exec() {
+            Ok(_) => {
+                app.system_message(&format!("-!- Script loaded: {}", path));
+            }
+            Err(e) => {
+                app.system_message(&format!("-!- Lua error in {}: {}", path, e));
+            }
         }
-        Err(e) => {
-            return CommandResult::Error(format!("Cannot load {}: {}", path, e));
-        }
+    } else {
+        app.system_message("-!- Lua engine not available.");
     }
     CommandResult::Ok
 }
 
 fn cmd_reload(app: &mut App, _args: &[&str]) -> CommandResult {
     app.system_message("-!- Reloading Lua scripts...");
-    if std::path::Path::new("config.lua").exists() {
-        app.system_message("-!- Reloaded config.lua");
+    let lua_ref = app.lua.clone();
+    if let Some(lua) = lua_ref {
+        if std::path::Path::new("config.lua").exists() {
+            match std::fs::read_to_string("config.lua") {
+                Ok(script) => {
+                    match lua.load(&script).exec() {
+                        Ok(_) => { app.system_message("-!- Reloaded config.lua"); }
+                        Err(e) => { app.system_message(&format!("-!- Lua error: {}", e)); }
+                    }
+                }
+                Err(e) => { app.system_message(&format!("-!- Cannot read config.lua: {}", e)); }
+            }
+        } else {
+            app.system_message("-!- No config.lua found");
+        }
+        if std::path::Path::new("modules/init.lua").exists() {
+            match std::fs::read_to_string("modules/init.lua") {
+                Ok(script) => {
+                    match lua.load(&script).exec() {
+                        Ok(_) => { app.system_message("-!- Reloaded modules/init.lua"); }
+                        Err(e) => { app.system_message(&format!("-!- Lua error: {}", e)); }
+                    }
+                }
+                Err(e) => { app.system_message(&format!("-!- Cannot read modules/init.lua: {}", e)); }
+            }
+        }
     } else {
-        app.system_message("-!- No config.lua found");
+        app.system_message("-!- Lua engine not available.");
     }
     CommandResult::Ok
 }

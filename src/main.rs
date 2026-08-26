@@ -110,6 +110,7 @@ async fn main() -> Result<()> {
             server_host: String::new(),
             connected: false,
             cmd_tx: lua_cmd_tx,
+            settings: std::collections::HashMap::new(),
         }
     ));
     void::scripting::api::register_api(&lua, lua_hooks.clone(), lua_ctx.clone())?;

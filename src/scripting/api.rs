@@ -147,6 +147,7 @@ pub struct LuaContext {
     pub server_host: String,
     pub connected: bool,
     pub cmd_tx: mpsc::Sender<LuaCommand>,
+    pub settings: HashMap<String, String>,
 }
 
 /// Inicjalizacja Lua API — rejestruje tabelę `void` z pełnym API
@@ -207,9 +208,13 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
         void_table.set("set", set_fn)?;
     }
 
-    // ─── void.get(key) — placeholder ─────────────────
+    // ─── void.get(key) — odczytaj ustawienie ──────────
     {
-        let get_fn = lua.create_function(|_, _key: String| Ok(String::new()))?;
+        let ctx = ctx.clone();
+        let get_fn = lua.create_function(move |_, key: String| {
+            let ctx = ctx.lock().unwrap();
+            Ok(ctx.settings.get(&key.to_uppercase()).cloned().unwrap_or_default())
+        })?;
         void_table.set("get", get_fn)?;
     }
 
