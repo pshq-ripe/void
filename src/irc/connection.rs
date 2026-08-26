@@ -449,6 +449,55 @@ pub async fn spawn_connection(
                                 }
                             }
 
+                            // CAP NEW/DEL po registration — dynamiczna negocjacja
+                            if cap_done {
+                                if let Command::CAP(_, sub, _, ref data) = msg.command {
+                                    match sub {
+                                        CapSubCommand::NEW => {
+                                            let caps = data.as_deref().unwrap_or("");
+                                            let _ = tx.send(IrcEvent::Status(
+                                                format!("-!- CAP NEW: {}", caps)
+                                            )).await;
+                                            let _ = tx.send(IrcEvent::CapEvent("NEW".into(), caps.to_string())).await;
+                                            // Auto-request new capabilities
+                                            let desired = "multi-prefix away-notify account-notify extended-join server-time echo-message";
+                                            let _ = tx.send(IrcEvent::Status(
+                                                format!("-!- Requesting new capabilities: {}", desired)
+                                            )).await;
+                                            let _ = sender.send(Command::CAP(None, CapSubCommand::REQ, None, Some(desired.to_string())));
+                                        }
+                                        CapSubCommand::DEL => {
+                                            let caps = data.as_deref().unwrap_or("");
+                                            let _ = tx.send(IrcEvent::Status(
+                                                format!("-!- CAP DEL: {} (removed by server)", caps)
+                                            )).await;
+                                            let _ = tx.send(IrcEvent::CapEvent("DEL".into(), caps.to_string())).await;
+                                        }
+                                        CapSubCommand::ACK => {
+                                            let caps = data.as_deref().unwrap_or("");
+                                            let _ = tx.send(IrcEvent::Status(
+                                                format!("-!- CAP ACK (post-reg): {}", caps)
+                                            )).await;
+                                            let _ = tx.send(IrcEvent::CapEvent("ACK".into(), caps.to_string())).await;
+                                        }
+                                        CapSubCommand::NAK => {
+                                            let caps = data.as_deref().unwrap_or("");
+                                            let _ = tx.send(IrcEvent::Status(
+                                                format!("-!- CAP NAK (post-reg): {}", caps)
+                                            )).await;
+                                            let _ = tx.send(IrcEvent::CapEvent("NAK".into(), caps.to_string())).await;
+                                        }
+                                        CapSubCommand::LIST => {
+                                            let caps = data.as_deref().unwrap_or("");
+                                            let _ = tx.send(IrcEvent::Status(
+                                                format!("-!- CAP LIST: {}", caps)
+                                            )).await;
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+
                             // Przekaż wszystkie wiadomości do głównej pętli
                             if tx.send(IrcEvent::Message(msg)).await.is_err() {
                                 break;
