@@ -98,6 +98,12 @@ pub fn handle_irc_message(app: &mut App, msg: &Message) {
             }
             if let Some(buf) = app.get_buffer_mut(&channel) {
                 buf.add_nick(&source);
+                // Extended-join: zapisz account i realname w NickEntry
+                let acct = account.as_deref().unwrap_or("");
+                let real = realname.as_deref().unwrap_or("");
+                if !acct.is_empty() || !real.is_empty() {
+                    buf.set_nick_info(&source, acct, real);
+                }
             }
             // Extended-join: pokaż account i realname jeśli dostępne
             let join_msg = match (account.as_deref(), realname.as_deref()) {

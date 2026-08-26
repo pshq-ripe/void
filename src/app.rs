@@ -24,6 +24,8 @@ pub struct Buffer {
 pub struct NickEntry {
     pub nick: String,
     pub prefix: String,  // "@" = op, "+" = voice, "%" = halfop, "~" = owner, "&" = admin
+    pub account: String,  // IRCv3 extended-join account
+    pub realname: String, // IRCv3 extended-join realname
 }
 
 impl NickEntry {
@@ -36,7 +38,7 @@ impl NickEntry {
                 prefix.push(nick.remove(0));
             }
         }
-        NickEntry { nick, prefix }
+        NickEntry { nick, prefix, account: String::new(), realname: String::new() }
     }
 
     pub fn display(&self) -> String {
@@ -127,6 +129,13 @@ impl Buffer {
         if let Some(entry) = self.nicks.iter_mut().find(|n| n.nick == old) {
             entry.nick = new.to_string();
             self.sort_nicks();
+        }
+    }
+
+    pub fn set_nick_info(&mut self, nick: &str, account: &str, realname: &str) {
+        if let Some(entry) = self.nicks.iter_mut().find(|n| n.nick == nick) {
+            entry.account = account.to_string();
+            entry.realname = realname.to_string();
         }
     }
 

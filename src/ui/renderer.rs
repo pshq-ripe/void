@@ -4,7 +4,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Paragraph, Wrap},
     Terminal,
 };
 use std::io;
@@ -325,6 +325,7 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
 
     let chat_paragraph = Paragraph::new(all_text)
         .block(Block::default().borders(Borders::NONE))
+        .wrap(Wrap { trim: false })
         .scroll((scroll_row as u16, 0));
     f.render_widget(chat_paragraph, area);
 
@@ -461,25 +462,53 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         }
 
         // ─── Status bar ─────────────────────────────────
-        let mut buf_spans = vec![];
-        for (i, b) in app.buffers.iter().enumerate() {
-            let is_active = i == app.current_buffer_idx;
+        // Oblicz szerokości etykiet i przewiń żeby aktywny bufor był widoczny
+        let bar_width = main_chunks[2].width as usize;
+        let labels: Vec<String> = app.buffers.iter().enumerate().map(|(i, b)| {
             let is_chan = is_channel(&b.name);
-            let label = if b.unread_count > 0 && !is_active {
-                if is_chan {
-                    format!(" {}({})({}) ", b.name, b.nicks.len(), b.unread_count)
-                } else {
-                    format!(" {}({}) ", b.name, b.unread_count)
-                }
-            } else if is_chan {
-                format!(" {}({}) ", b.name, b.nicks.len())
-            } else {
-                format!(" {} ", b.name)
-            };
+            if b.unread_count > 0 && i != app.current_buffer_idx {
+                if is_chan { format!(" {}({})({}) ", b.name, b.nicks.len(), b.unread_count) }
+                else { format!(" {}({}) ", b.name, b.unread_count) }
+            } else if is_chan { format!(" {}({}) ", b.name, b.nicks.len()) }
+            else { format!(" {} ", b.name) }
+        }).collect();
 
+        // Znajdź offset scrollowania — aktywny bufor musi być widoczny
+        let mut tab_offset = 0usize;
+        // Sprawdź czy wszystkie się mieszają
+        let total_width: usize = labels.iter().map(|l| l.len()).sum();
+        if total_width > bar_width.saturating_sub(20) {
+            // Nie mieszczą się — przewiń żeby aktywny był widoczny
+            let mut width_before_active = 0usize;
+            for i in 0..app.current_buffer_idx {
+                width_before_active += labels[i].len();
+            }
+            // Przewiń żeby aktywny bufor był w środku
+            let target_pos = bar_width / 3;
+            if width_before_active > target_pos {
+                tab_offset = width_before_active - target_pos;
+            }
+        }
+
+        let mut buf_spans = vec![];
+        let mut x = 0usize;
+        for (i, b) in app.buffers.iter().enumerate() {
+            let label = &labels[i];
+            let label_width = label.len();
+            // Sprawdź czy ten tab jest widoczny
+            if x + label_width < tab_offset {
+                x += label_width;
+                continue;
+            }
+            if x >= tab_offset + bar_width.saturating_sub(20) {
+                break;
+            }
+            x += label_width;
+
+            let is_active = i == app.current_buffer_idx;
             if is_active {
                 buf_spans.push(Span::styled(
-                    label,
+                    label.clone(),
                     Style::default()
                         .fg(Color::Black)
                         .bg(Color::LightGreen)
@@ -487,12 +516,12 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
                 ));
             } else if b.has_activity {
                 buf_spans.push(Span::styled(
-                    label,
+                    label.clone(),
                     Style::default().fg(Color::White).bg(Color::DarkGray),
                 ));
             } else {
                 buf_spans.push(Span::styled(
-                    label,
+                    label.clone(),
                     Style::default().fg(Color::Black).bg(Color::Green),
                 ));
             }
