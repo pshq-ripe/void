@@ -53,6 +53,13 @@ end
 void.register_command("SENSORS", "lice5_cmd_sensors")
 function lice5_cmd_sensors(args)
     local channel = void.channel()
+    if channel == "" and #args > 1 then
+        channel = args[2]
+    end
+    if channel == "" then
+        void.echo("-!- Not in a channel. Usage: /sensors [on|off|report] #channel")
+        return
+    end
     if #args == 0 then
         lice5.sensors.report(channel)
         return

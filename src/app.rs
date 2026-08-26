@@ -301,6 +301,7 @@ pub struct App {
     pub storage: Option<Storage>,
     pub lua_hooks: Option<Arc<Mutex<LuaHooks>>>,
     pub lua: Option<Arc<mlua::Lua>>,
+    pub lua_ctx: Option<Arc<Mutex<crate::scripting::api::LuaContext>>>,
     pub logger: Logger,
     pub flood: FloodProtection,
     pub dcc: DccManager,
@@ -384,6 +385,7 @@ impl App {
             storage: Storage::open("~/.void/void.db", db_pass).ok(),
             lua_hooks: None,
             lua: None,
+            lua_ctx: None,
             logger: Logger::new(&log_file),
             flood: FloodProtection::new(flood_rate, flood_per),
             dcc: DccManager::new(&dcc_dir),
@@ -490,6 +492,7 @@ impl App {
             self.current_buffer_idx = idx;
             self.buffers[idx].unread_count = 0;
             self.buffers[idx].has_activity = false;
+            self.sync_lua_context();
         }
     }
 
@@ -498,6 +501,7 @@ impl App {
             self.current_buffer_idx = (self.current_buffer_idx + 1) % self.buffers.len();
             self.buffers[self.current_buffer_idx].unread_count = 0;
             self.buffers[self.current_buffer_idx].has_activity = false;
+            self.sync_lua_context();
         }
     }
 
@@ -510,6 +514,19 @@ impl App {
             };
             self.buffers[self.current_buffer_idx].unread_count = 0;
             self.buffers[self.current_buffer_idx].has_activity = false;
+            self.sync_lua_context();
+        }
+    }
+
+    /// Synchronizuj LuaContext z aktualnym stanem App
+    pub fn sync_lua_context(&self) {
+        if let Some(ref ctx) = self.lua_ctx {
+            if let Ok(mut c) = ctx.lock() {
+                c.our_nick = self.server().our_nick.clone();
+                c.current_channel = self.buffers[self.current_buffer_idx].name.clone();
+                c.server_host = self.server().host.clone();
+                c.connected = self.server().connected;
+            }
         }
     }
 

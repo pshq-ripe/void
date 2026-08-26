@@ -142,6 +142,7 @@ async fn main() -> Result<()> {
     let mut app = App::new(&nick, &server, port, tls, &db_pass);
     app.server_mut().nick_password = args.nickserv.clone();
     app.lua_hooks = Some(lua_hooks.clone());
+    app.lua_ctx = Some(lua_ctx.clone());
     let lua_arc = Arc::new(lua);
     app.lua = Some(lua_arc.clone());
     let lua = &*lua_arc;
