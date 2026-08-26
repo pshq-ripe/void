@@ -178,6 +178,7 @@ pub async fn spawn_connection(
     ssl_verify: bool,
     proxy: ProxyConfig,
     ipv6: bool,
+    vhost: Option<String>,
     tx: mpsc::Sender<IrcEvent>,
 ) {
     let tls_label = if tls { "TLS" } else { "PLAIN" };
@@ -193,6 +194,7 @@ pub async fn spawn_connection(
     config.use_tls = Some(tls);
     config.dangerously_accept_invalid_certs = Some(!ssl_verify);
     config.password = password;
+    config.source = vhost.clone();
 
     // IPv6 — jeśli wymuszony, dodaj prefiks ipv6:
     if ipv6 {
@@ -216,6 +218,13 @@ pub async fn spawn_connection(
         let _ = tx.send(IrcEvent::Status(
             format!("-!- Using {} proxy: {}:{}",
                 ptype, proxy.server.as_deref().unwrap_or("localhost"), proxy.port)
+        )).await;
+    }
+
+    // Vhost binding
+    if let Some(ref vh) = vhost {
+        let _ = tx.send(IrcEvent::Status(
+            format!("-!- Binding to vhost: {}", vh)
         )).await;
     }
 

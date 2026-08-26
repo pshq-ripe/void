@@ -23,7 +23,7 @@ use void::ui::renderer;
 #[derive(Parser, Debug)]
 #[command(name = "void")]
 #[command(about = "Void — A Lua-scriptable IRC client in Rust (epic5 inspired)")]
-#[command(disable_help_flag = true)]
+#[command(disable_help_flag = false)]
 struct Args {
     /// IRC server hostname
     #[arg(short = 'c', long)]
@@ -38,7 +38,7 @@ struct Args {
     channel: Option<String>,
 
     /// Bind to vhost
-    #[arg(short = 'h', long)]
+    #[arg(short = 'H', long)]
     vhost: Option<String>,
 
     /// Server password
@@ -205,7 +205,7 @@ async fn main() -> Result<()> {
         let proxy = proxy_config.clone();
         let ipv6 = ipv6_mode;
         Some(tokio::spawn(async move {
-            connection::spawn_connection(host, port, nickname, use_tls, password, sasl, false, proxy, ipv6, tx).await;
+            connection::spawn_connection(host, port, nickname, use_tls, password, sasl, false, proxy, ipv6, args.vhost.clone(), tx).await;
         }))
     };
 
@@ -460,7 +460,7 @@ async fn main() -> Result<()> {
                     let nickname = app.server().our_nick.clone();
                     let use_tls = app.server().tls;
                     conn_handle = Some(tokio::spawn(async move {
-                        connection::spawn_connection(host, port, nickname, use_tls, None, None, false, connection::ProxyConfig::default(), false, tx).await;
+                        connection::spawn_connection(host, port, nickname, use_tls, None, None, false, connection::ProxyConfig::default(), false, None, tx).await;
                     }));
                 }
             }
@@ -502,7 +502,7 @@ async fn main() -> Result<()> {
                             let use_tls = app.server().tls;
                             conn_handle = Some(tokio::spawn(async move {
                                 tokio::time::sleep(Duration::from_secs(delay)).await;
-                                connection::spawn_connection(host, port, nickname, use_tls, None, None, false, connection::ProxyConfig::default(), false, tx).await;
+                                connection::spawn_connection(host, port, nickname, use_tls, None, None, false, connection::ProxyConfig::default(), false, None, tx).await;
                             }));
                         }
                     }
