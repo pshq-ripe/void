@@ -394,12 +394,13 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         } else {
             main_chunks[1]
         };
+        let nick_width = app.settings.get_int("NICK_WIDTH").max(12).min(40) as u16;
         let chat_area = if show_nicks {
             Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints([
                     Constraint::Min(20),
-                    Constraint::Length(18),
+                    Constraint::Length(nick_width),
                 ])
                 .split(primary_area)
         } else {

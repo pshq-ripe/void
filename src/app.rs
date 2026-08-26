@@ -251,6 +251,7 @@ impl Settings {
         map.insert("CTCP_REPLY".into(), "ON".into());
         map.insert("SSL_VERIFY".into(), "OFF".into());
         map.insert("DEBUG".into(), "OFF".into());
+        map.insert("NICK_WIDTH".into(), "18".into());
         Settings { map }
     }
 
