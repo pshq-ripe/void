@@ -24,7 +24,7 @@ end
 
 -- Load all modules (order matters — dependencies first)
 lice5.load("ignore")          -- Enhanced ignore system
-lice5.load("gone")            -- Away/back with random reasons
+lice5.load("gone")            -- Away/back with random reasons + auto-away
 lice5.load("kick")            -- Enhanced kick/kickban with random reasons
 lice5.load("mass")            -- Mass op/deop/voice/kick/ban
 lice5.load("userlist")        -- Bot-style auto-op/voice
@@ -36,11 +36,18 @@ lice5.load("autovoice")       -- Auto-voice on join
 lice5.load("anti_flood")      -- Anti-flood protection
 lice5.load("highlight")       -- Nick/pattern highlight
 lice5.load("ctcp")            -- Enhanced CTCP replies
--- away: merged into gone.lua (random reasons + auto-away)
 lice5.load("nickserv")        -- NickServ auto-identify + ghost
 lice5.load("channel_protect") -- Anti-kick, anti-deop
--- statusbar: native /status command handles this
--- keybinds: native /bind command handles this
+lice5.load("invite")          -- Invite management
+lice5.load("dns")             -- DNS lookup
+lice5.load("signoff")         -- Random quit messages
+lice5.load("wall")            -- Broadcast to channels
+lice5.load("finger")          -- User info lookup
+lice5.load("memo")            -- Offline memo system
+lice5.load("note")            -- Quick notes
+lice5.load("party")           -- Party mode
+lice5.load("sensors")         -- Channel activity monitoring
+lice5.load("help")            -- Enhanced help system
 
 -- Count loaded modules
 local count = 0
