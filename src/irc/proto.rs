@@ -5,6 +5,14 @@ use irc::client::prelude::*;
 pub fn handle_irc_message(app: &mut App, msg: &Message) {
     let source = msg.source_nickname().unwrap_or("").to_string();
 
+    // IRCv3 server-time: wyciągnij timestamp z message tags
+    let _server_time = msg.tags.as_ref().and_then(|tags| {
+        tags.iter()
+            .find(|t| t.0 == "time")
+            .and_then(|t| t.1.as_deref())
+    });
+    // TODO: użyj _server_time do nadpisania timestampu wiadomości
+
     // Ustaw kontekst wyjścia (epic6 /ON CONTEXT)
     let target = match &msg.command {
         Command::PRIVMSG(t, _) | Command::NOTICE(t, _) | Command::JOIN(t, _, _) | Command::PART(t, _) => t.clone(),
