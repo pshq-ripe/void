@@ -190,7 +190,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
 
     // ─── void.version() ──────────────────────────────
     {
-        let version_fn = lua.create_function(|_, ()| Ok("void 0.1.0"))?;
+        let version_fn = lua.create_function(|_, ()| Ok("void 0.2.0"))?;
         void_table.set("version", version_fn)?;
     }
 

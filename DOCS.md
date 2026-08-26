@@ -2,7 +2,7 @@
 
 > A modern, Lua-scriptable IRC client written in Rust, inspired by **epic5** with **LiCe5** scripts and **epic6** features.
 
-**Version:** 0.1.0  
+**Version:** 0.2.0  
 **License:** MIT  
 **Repository:** https://github.com/pshq/void
 
@@ -104,6 +104,30 @@ cargo install --path .
 # This places the `void` binary in ~/.cargo/bin/
 # Make sure ~/.cargo/bin is in your PATH
 export PATH="$HOME/.cargo/bin:$PATH"
+```
+
+### 1.3.1 System-Wide Install
+
+To install Void system-wide so all users can access it:
+
+```bash
+# Build the release binary
+cargo build --release
+
+# Copy to a system-wide location
+sudo cp target/release/void /usr/local/bin/
+sudo chmod +x /usr/local/bin/void
+
+# Verify installation
+void --version
+```
+
+**Binary location after `cargo install`:** `~/.cargo/bin/void`
+
+To find where cargo installs binaries:
+```bash
+cargo install --list | grep void
+which void
 ```
 
 ### 1.4 Running Tests
@@ -299,6 +323,7 @@ end
 |---|---|---|
 | `--sasl` | `<nick:password>` | SASL PLAIN authentication |
 | `--sasl` | `EXTERNAL` | SASL EXTERNAL (client certificate) |
+| `--sasl` | `SCRAM-SHA-512:<nick:password>` | SASL SCRAM-SHA-512 authentication |
 
 **Examples:**
 
@@ -308,6 +333,9 @@ void -c irc.libera.chat -n mynick --sasl "mynick:secretpass"
 
 # SASL EXTERNAL (requires client certificate configured on server)
 void -c irc.libera.chat -n mynick --sasl EXTERNAL
+
+# SASL SCRAM-SHA-512 (strongest mechanism)
+void -c irc.libera.chat -n mynick --sasl "SCRAM-SHA-512:mynick:secretpass"
 ```
 
 ### 3.4 Proxy Options
@@ -527,6 +555,8 @@ All commands are case-insensitive. Commands prefixed with `/` are entered in the
 | `/format` | | `/format <type> <template>` | Set a format template |
 | `/status` | | `/status [format]` | Show/set status bar format |
 | `/save` | | `/save` | Save all settings to database and config file |
+| `/theme` | | `/theme` | Show current theme and available themes |
+| `/theme` | | `/theme <name>` | Apply a color theme |
 | `/flood` | | `/flood [on\|off] [rate] [per]` | Manage flood protection settings |
 
 **Examples:**
@@ -713,7 +743,7 @@ void.echo("-!- System message style")
 Returns the client version string.
 
 ```lua
-local ver = void.version()  -- "void 0.1.0"
+local ver = void.version()  -- "void 0.2.0"
 void.echo("Running: " .. ver)
 ```
 
@@ -1183,6 +1213,8 @@ Use `void.on(event_type, function_name)` to register event handlers. The functio
 | `INVITE` | nick | channel | — | Invited to a channel |
 | `CONNECT` | — | — | — | Connected to server |
 | `CAP` | subcommand | data | — | IRCv3 CAP event |
+| `CHGHOST` | nick | new_user | new_host | User changed host (chghost) |
+| `CONTEXT` | old_channel | new_channel | — | Window context changed (epic6) |
 
 #### Example: Welcome Message on Join
 
@@ -1351,7 +1383,7 @@ void.echo("-!- advanced_bot.lua loaded")
 
 ## 6. Modules Guide
 
-Void ships with 25 LiCe5-compatible Lua modules. Load them all at once with:
+Void ships with **82 modules** total: 25 core LiCe5-compatible Lua modules, 7 color themes, and 50 additional feature modules. Load them all at once with:
 
 ```
 /load modules/init.lua
@@ -1875,6 +1907,604 @@ Categorized help system for all commands.
 
 **Categories:** Channel, Message, Server, Window, Config, System, LiCe5
 
+### 6.26 Theme System
+
+Void includes 7 built-in color themes that change the entire look and feel of the client.
+
+**Commands:** `/theme`
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/theme` | `/theme` | Show current theme and available themes |
+| `/theme` | `/theme <name>` | Apply a theme |
+| `/theme` | `/theme list` | List all available themes |
+
+**Available Themes:**
+
+| Theme | Description |
+|---|---|
+| **Nord** | Arctic, north-bluish color palette (polar night + snow storm) |
+| **Dracula** | Dark theme with vibrant pink, purple, cyan, and green accents |
+| **Gruvbox** | Retro groove warm colors with soft contrast |
+| **Solarized** | Precision colors for machines and people (dark variant) |
+| **TokyoNight** | Clean, dark theme inspired by the lights of Tokyo |
+| **Matrix** | Classic green-on-black terminal aesthetic |
+| **Catppuccin** | Soothing pastel theme (Mocha dark variant) |
+
+**Examples:**
+
+```
+/theme                    -- show current theme
+/theme list               -- list available themes
+/theme dracula            -- apply Dracula theme
+/theme nord               -- apply Nord theme
+/theme catppuccin         -- apply Catppuccin theme
+```
+
+### 6.27 banlist — Ban List Management
+
+**File:** `modules/banlist.lua`
+**Commands:** `/banlist`
+
+View and manage the channel ban list.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/banlist` | `/banlist` | Show bans for the current channel |
+| `/banlist` | `/banlist [#channel]` | Show bans for a specific channel |
+
+### 6.28 exclist — Exception List Management
+
+**File:** `modules/exclist.lua`
+**Commands:** `/exclist`
+
+View and manage ban exception lists (+e).
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/exclist` | `/exclist` | Show ban exceptions for the current channel |
+| `/exclist` | `/exclist [#channel]` | Show ban exceptions for a specific channel |
+
+### 6.29 joinlist — Invite Exception List
+
+**File:** `modules/joinlist.lua`
+**Commands:** `/joinlist`
+
+View and manage invite exception lists (+I).
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/joinlist` | `/joinlist` | Show invite exceptions for the current channel |
+| `/joinlist` | `/joinlist [#channel]` | Show invite exceptions for a specific channel |
+
+### 6.30 serverignore — Server-Level Ignore
+
+**File:** `modules/serverignore.lua`
+**Commands:** `/serverignore`
+
+Manage server-wide ignore patterns (applied across all channels).
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/serverignore` | `/serverignore` | Show server ignore list |
+| `/serverignore` | `/serverignore add <pattern> [flags]` | Add server-level ignore |
+| `/serverignore` | `/serverignore del <pattern>` | Remove server-level ignore |
+
+### 6.31 chanlog — Channel Log Viewer
+
+**File:** `modules/chanlog.lua`
+**Commands:** `/chanlog`
+
+View and search channel log files.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/chanlog` | `/chanlog [#channel]` | Show today's log for a channel |
+| `/chanlog` | `/chanlog search <pattern>` | Search logs for a pattern |
+| `/chanlog` | `/chanlog date <YYYY-MM-DD>` | Show log for a specific date |
+
+### 6.32 news — News/Announcement System
+
+**File:** `modules/news.lua`
+**Commands:** `/news`
+
+Read and manage news items and announcements.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/news` | `/news` | Show latest news items |
+| `/news` | `/news add <text>` | Add a news item |
+| `/news` | `/news read [id]` | Read a specific news item |
+| `/news` | `/news delete <id>` | Delete a news item |
+
+### 6.33 update — Self-Update Check
+
+**File:** `modules/update.lua`
+**Commands:** `/update`
+
+Check for Void client updates.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/update` | `/update` | Check for available updates |
+
+### 6.34 oops — Quick Correction
+
+**File:** `modules/oops.lua`
+**Commands:** `/oops`
+
+Quickly correct your last message.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/oops` | `/oops <correction>` | Send a correction for your last message |
+
+**Example:**
+
+```
+Hello wrold!
+/oops world
+-- Sends: "Hello world! (was: wrold)"
+```
+
+### 6.35 splitlist — Split Screen List Management
+
+**File:** `modules/splitlist.lua`
+**Commands:** `/splitlist`
+
+Manage saved split-screen configurations.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/splitlist` | `/splitlist` | Show saved split configurations |
+| `/splitlist` | `/splitlist save <name>` | Save current split layout |
+| `/splitlist` | `/splitlist load <name>` | Restore a saved split layout |
+| `/splitlist` | `/splitlist del <name>` | Delete a saved split layout |
+
+### 6.36 showlist — Show List
+
+**File:** `modules/showlist.lua`
+**Commands:** `/showlist`
+
+Display various internal lists (ignores, highlights, notifies, etc.).
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/showlist` | `/showlist <type>` | Show a list by type |
+
+**Types:** `ignore`, `highlight`, `notify`, `userlist`, `ban`, `except`, `invite`
+
+### 6.37 rmlist — Remove from List
+
+**File:** `modules/rmlist.lua`
+**Commands:** `/rmlist`
+
+Remove entries from various internal lists.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/rmlist` | `/rmlist <type> <pattern>` | Remove an entry from a list |
+
+### 6.38 refriend — Re-Friend User
+
+**File:** `modules/refriend.lua`
+**Commands:** `/refriend`
+
+Re-add a user to the userlist after removal.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/refriend` | `/refriend <nick>` | Re-add user as friend |
+
+### 6.39 rel — Release (Unban) User
+
+**File:** `modules/rel.lua`
+**Commands:** `/rel`
+
+Quick unban/release of a user from the channel.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/rel` | `/rel <nick>` | Remove all bans matching a user |
+
+### 6.40 noig — Temporary Unignore
+
+**File:** `modules/noig.lua`
+**Commands:** `/noig`
+
+Temporarily remove an ignore for a specific user.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/noig` | `/noig <nick>` | Temporarily unignore a user |
+
+### 6.41 pager — Pager System
+
+**File:** `modules/pager.lua`
+**Commands:** `/pager`
+
+Pager/notification system for when you're away.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/pager` | `/pager` | Show pager status |
+| `/pager` | `/pager on\|off` | Toggle pager |
+| `/pager` | `/pager read` | Read paged messages |
+
+### 6.42 wget — Web Fetch
+
+**File:** `modules/wget.lua`
+**Commands:** `/wget`
+
+Fetch content from a URL and display it.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/wget` | `/wget <url>` | Fetch and display URL content |
+
+### 6.43 trans — Translation
+
+**File:** `modules/trans.lua`
+**Commands:** `/trans`
+
+Translate text between languages.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/trans` | `/trans <lang> <text>` | Translate text to target language |
+| `/trans` | `/trans <src>-<dst> <text>` | Translate between specific languages |
+
+### 6.44 define — Dictionary Lookup
+
+**File:** `modules/define.lua`
+**Commands:** `/define`
+
+Look up word definitions.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/define` | `/define <word>` | Look up a word's definition |
+
+### 6.45 sc — Screen Commands
+
+**File:** `modules/sc.lua`
+**Commands:** `/sc`
+
+Screen/display manipulation shortcuts.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/sc` | `/sc <action>` | Execute a screen action |
+
+### 6.46 mk — Mark/Bookmark
+
+**File:** `modules/mk.lua`
+**Commands:** `/mk`
+
+Mark or bookmark positions in scrollback.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/mk` | `/mk [name]` | Set a mark at current position |
+| `/mk` | `/mk goto <name>` | Jump to a named mark |
+
+### 6.47 mme — Mass Me
+
+**File:** `modules/mme.lua`
+**Commands:** `/mme`
+
+Send action messages to multiple channels.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/mme` | `/mme <action>` | Send /me to all joined channels |
+
+### 6.48 msay — Mass Say
+
+**File:** `modules/msay.lua`
+**Commands:** `/msay`
+
+Send messages to multiple channels at once.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/msay` | `/msay <text>` | Send text to all joined channels |
+
+### 6.49 mtog — Mass Toggle
+
+**File:** `modules/mtog.lua`
+**Commands:** `/mtog`
+
+Toggle modes across multiple channels.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/mtog` | `/mtog <mode>` | Toggle a mode on all joined channels |
+
+### 6.50 ctog — Channel Toggle
+
+**File:** `modules/ctog.lua`
+**Commands:** `/ctog`
+
+Toggle channel modes.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/ctog` | `/ctog <mode>` | Toggle a channel mode |
+
+### 6.51 dtog — Deop Toggle
+
+**File:** `modules/dtog.lua`
+**Commands:** `/dtog`
+
+Toggle deop protection.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/dtog` | `/dtog` | Toggle deop protection |
+
+### 6.52 wtog — Window Toggle
+
+**File:** `modules/wtog.lua`
+**Commands:** `/wtog`
+
+Toggle window-level settings.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/wtog` | `/wtog <setting>` | Toggle a window setting |
+
+### 6.53 tog — General Toggle
+
+**File:** `modules/tog.lua`
+**Commands:** `/tog`
+
+General-purpose toggle for various settings.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/tog` | `/tog <setting>` | Toggle a setting on/off |
+
+### 6.54 dom — Domain Lookup
+
+**File:** `modules/dom.lua`
+**Commands:** `/dom`
+
+Domain/WHOIS lookup for IRC users.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/dom` | `/dom <nick>` | Look up user's domain via WHOIS |
+
+### 6.55 dump — Dump State
+
+**File:** `modules/dump.lua`
+**Commands:** `/dump`
+
+Dump internal state for debugging.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/dump` | `/dump [type]` | Dump internal state |
+
+**Types:** `settings`, `aliases`, `hooks`, `vars`, `all`
+
+### 6.56 ulsave — Userlist Save
+
+**File:** `modules/ulsave.lua`
+**Commands:** `/ulsave`
+
+Manually save the userlist database.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/ulsave` | `/ulsave` | Force-save the userlist to disk |
+
+### 6.57 ulw_* — Userlist Window Commands
+
+**File:** `modules/userlist.lua`
+**Commands:** `/ulw_chat`, `/ulw_help`, `/ulw_ident`, `/ulw_invite`, `/ulw_op`, `/ulw_voice`, `/ulw_unban`, `/ulw_whoami`, `/ulw_pass`
+
+Quick userlist operations via window commands:
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/ulw_chat` | `/ulw_chat <nick>` | Open a chat window with a userlist entry |
+| `/ulw_help` | `/ulw_help` | Show userlist window help |
+| `/ulw_ident` | `/ulw_ident <nick>` | Identify a user from the userlist |
+| `/ulw_invite` | `/ulw_invite <nick> [#channel]` | Invite a userlist entry to a channel |
+| `/ulw_op` | `/ulw_op <nick>` | Op a userlist entry |
+| `/ulw_voice` | `/ulw_voice <nick>` | Voice a userlist entry |
+| `/ulw_unban` | `/ulw_unban <nick>` | Unban a userlist entry |
+| `/ulw_whoami` | `/ulw_whoami` | Show your userlist entry info |
+| `/ulw_pass` | `/ulw_pass <password>` | Set userlist password |
+
+### 6.58 tabcomp — Tab Completion Config
+
+**File:** `modules/tabcomp.lua`
+**Commands:** `/tabcomp`
+
+Configure nick/tab completion behavior.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/tabcomp` | `/tabcomp` | Show tab completion settings |
+| `/tabcomp` | `/tabcomp <setting> <value>` | Change tab completion setting |
+
+### 6.59 bword — Bad Word Filter
+
+**File:** `modules/bword.lua`
+**Commands:** `/bword`
+
+Filter messages containing bad words.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/bword` | `/bword` | Show bad word list |
+| `/bword` | `/bword add <word>` | Add a bad word |
+| `/bword` | `/bword del <word>` | Remove a bad word |
+| `/bword` | `/bword on\|off` | Toggle bad word filter |
+
+### 6.60 binds — Key Binding Presets
+
+**File:** `modules/binds.lua`
+**Commands:** `/binds`
+
+Manage preset key binding configurations.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/binds` | `/binds` | Show current bindings |
+| `/binds` | `/binds <preset>` | Apply a binding preset |
+
+### 6.61 defaults — Default Settings
+
+**File:** `modules/defaults.lua`
+**Commands:** `/defaults`
+
+Reset settings to defaults.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/defaults` | `/defaults` | Show default settings |
+| `/defaults` | `/defaults reset` | Reset all settings to defaults |
+| `/defaults` | `/defaults reset <setting>` | Reset a specific setting |
+
+### 6.62 imail — Internal Mail
+
+**File:** `modules/imail.lua`
+**Commands:** `/imail`
+
+Internal mail system for offline messages.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/imail` | `/imail` | Check for new mail |
+| `/imail` | `/imail send <nick> <message>` | Send internal mail |
+| `/imail` | `/imail read` | Read unread mail |
+| `/imail` | `/imail list` | List all mail |
+
+### 6.63 floodlist — Flood List Management
+
+**File:** `modules/floodlist.lua`
+**Commands:** `/floodlist`
+
+View and manage the flood protection list.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/floodlist` | `/floodlist` | Show flood list |
+| `/floodlist` | `/floodlist clear` | Clear flood list |
+
+### 6.64 looplist — Loop List Management
+
+**File:** `modules/looplist.lua`
+**Commands:** `/looplist`
+
+View and manage active timer loops.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/looplist` | `/looplist` | Show active loops |
+| `/looplist` | `/looplist stop <id>` | Stop a specific loop |
+
+### 6.65 pic — ASCII Art
+
+**File:** `modules/pic.lua`
+**Commands:** `/pic`
+
+Display ASCII art pictures.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/pic` | `/pic [name]` | Display an ASCII art picture |
+
+### 6.66 ppl — People/User Info
+
+**File:** `modules/ppl.lua`
+**Commands:** `/ppl`
+
+Quick user information display.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/ppl` | `/ppl [nick]` | Show info about people in channel |
+
+### 6.67 chanst — Channel Status
+
+**File:** `modules/chanst.lua`
+**Commands:** `/chanst`
+
+Show detailed channel status information.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/chanst` | `/chanst [#channel]` | Show channel status details |
+
+### 6.68 cwho — Channel Who
+
+**File:** `modules/cwho.lua`
+**Commands:** `/cwho`
+
+Enhanced WHO for channels with filtering.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/cwho` | `/cwho [pattern]` | WHO with channel context |
+
+### 6.69 et — Elapsed Time
+
+**File:** `modules/et.lua`
+**Commands:** `/et`
+
+Show elapsed time / uptime tracking.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/et` | `/et` | Show elapsed time since connect |
+
+### 6.70 db — Database Commands
+
+**File:** `modules/db.lua`
+**Commands:** `/db`
+
+Direct database query commands.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/db` | `/db <query>` | Execute a database query |
+| `/db` | `/db tables` | List database tables |
+
+### 6.71 fkey — Function Keys
+
+**File:** `modules/fkey.lua`
+**Commands:** `/fkey`
+
+Configure function key bindings (F1-F12).
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/fkey` | `/fkey` | Show function key bindings |
+| `/fkey` | `/fkey <N> <action>` | Set function key N binding |
+
+### 6.72 boot — Boot/Eject User
+
+**File:** `modules/boot.lua`
+**Commands:** `/boot`
+
+Boot a user from the channel (kick + ban + timed unban).
+
+| Command | Syntax | Description |
+|---|---|---|
+| `/boot` | `/boot <nick> [seconds] [reason]` | Boot user with timed unban |
+
+**Example:**
+
+```
+/boot spammer 300 Stop spamming
+-- Kicks and bans for 5 minutes, then auto-unbans
+```
+
 ---
 
 ## 7. Configuration
@@ -2048,6 +2678,21 @@ Void automatically negotiates IRCv3 capabilities with the server during connecti
 
 **Supported CAP subcommands:** `LS`, `LIST`, `REQ`, `ACK`, `NAK`, `NEW`, `DEL`
 
+**Lua CAP Hooks:** Use `void.on("CAP", handler)` to react to CAP events in scripts:
+
+```lua
+void.on("CAP", "on_cap")
+function on_cap(args)
+    local subcommand = args[1] or ""
+    local data = args[2] or ""
+    if subcommand == "ACK" then
+        void.echo("-!- Server acknowledged capabilities: " .. data)
+    elseif subcommand == "NAK" then
+        void.echo("-!- Server rejected capabilities: " .. data)
+    end
+end
+```
+
 ### 8.2 SASL Authentication
 
 Void supports three SASL mechanisms:
@@ -2109,6 +2754,7 @@ When the server supports `away-notify`, Void receives real-time notifications wh
 | `batch` | Batched message processing |
 | `echo-message` | Server echoes back your messages |
 | `account-notify` | Account change notifications |
+| `chghost` | Host/user change notifications (user@host changes) |
 | `extended-join` | JOIN messages include account and realname |
 | `multi-prefix` | Multiple nick prefixes in NAMES |
 
@@ -2126,6 +2772,47 @@ Void parses RPL_ISUPPORT (005) tokens to learn server capabilities:
 | `TOPICLEN` | `server_info.topiclen` | Maximum topic length |
 | `CHANNELLEN` | `server_info.channellen` | Maximum channel name length |
 | `MODES` | `server_info.modes` | Max modes per line |
+
+### 8.7 epic6 Features
+
+Void incorporates several features from the **epic6** IRC client:
+
+#### Message Breaking
+
+Long messages are automatically split at word boundaries to fit within the IRC protocol limit (512 bytes). Void intelligently breaks messages to avoid splitting words, URLs, or code blocks.
+
+#### `/ON CONTEXT` Hooks
+
+The `/ON CONTEXT` event fires when the user switches window context (changes the active window/channel). This allows scripts to perform actions when the user navigates between windows.
+
+```lua
+void.on("CONTEXT", "on_context_change")
+function on_context_change(args)
+    local old_channel = args[1] or ""
+    local new_channel = args[2] or ""
+    void.echo("Switched from " .. old_channel .. " to " .. new_channel)
+end
+```
+
+#### `/SHH` Command
+
+The `/SHH` command suppresses the next display output. This is useful for scripting when you want to execute a command silently without showing its output to the user.
+
+```
+/SHH /whois someuser    -- executes WHOIS but suppresses output
+```
+
+#### POLICY State
+
+Void tracks server POLICY state information, which describes server-enforced policies such as message rate limits, nick change throttles, and channel join limits. This information is used internally for flood protection and rate limiting.
+
+#### Scrollback Indicator
+
+When scrolled back in the scrollback buffer, a visual indicator shows that the current view is not at the bottom. New messages still arrive but the view stays at the scrolled position until the user scrolls to the bottom or presses `Ctrl+L`.
+
+#### SCRAM-SHA-512
+
+Full SCRAM-SHA-512 SASL authentication is implemented as described in [Section 8.2](#82-sasl-authentication). This is the strongest SASL mechanism available and is negotiated automatically when the server supports it.
 
 ---
 
@@ -2222,12 +2909,12 @@ src/
 ├── lib.rs            # Module declarations and re-exports
 ├── app.rs            # Core application state (App struct)
 ├── commands/
-│   └── registry.rs   # Command registry with 60+ built-in commands
+│   └── registry.rs   # Command registry with 100+ built-in commands
 ├── irc/
 │   ├── connection.rs # IRC connection management, SASL, proxy
 │   └── proto.rs      # IRC protocol message parsing and handling
 ├── scripting/
-│   ├── api.rs        # Lua API (void.* table with 40+ functions)
+│   ├── api.rs        # Lua API (void.* table with 50+ functions)
 │   └── engine.rs     # Lua engine init, script loading
 ├── ui/
 │   ├── input.rs      # Keyboard input handling, nick completion
@@ -2322,7 +3009,7 @@ Lua scripts communicate with the main application through:
 | **SQLCipher** | Encrypted storage protects passwords and private data |
 | **tokio async** | Non-blocking I/O for network, timers, and input |
 | **epic5 compatibility** | Familiar command set for IRC power users |
-| **LiCe5 modules** | Proven module system with 25+ scripts |
+| **LiCe5 modules** | Proven module system with 82 modules (25 core + 7 themes + 50 additional) |
 | **IRCv3 support** | Modern IRC features (SASL, MONITOR, away-notify) |
 | **Message breaking** | Automatic splitting of long messages at word boundaries |
 
@@ -2458,7 +3145,7 @@ Copyright (C) 1993-2000 SrfRoG, 2008-2015 tjh, whitefang
 Licensed under GPL v2+
 
 **Features ported from epic6:**
-SCRAM-SHA-512, MONITOR, `/ON CONTEXT`, `/SHH`, POLICY state, scrollback indicator, message breaking, destructive tokenizer (`void.token`), `void.coalesce`, `void.xform` (Base85)
+SCRAM-SHA-512, MONITOR, `/ON CONTEXT`, `/SHH`, POLICY state, scrollback indicator, message breaking, destructive tokenizer (`void.token`), `void.coalesce`, `void.xform` (Base85), `chghost`, `account-notify`, `extended-join`
 
 ### 12.2 Rust Crates
 
@@ -2521,20 +3208,32 @@ CONNECTION          CHANNELS            MESSAGES           WINDOWS
 /nick <newnick>     /kick <n> [r]       /query <nick>      /window split
 /away [msg]         /mode <t> <m>       /ctcp <n> <type>   /clear
 /whois <nick>       /ban <n>            /ping <nick>       /lastlog [pat]
-                    /op <nick>                              /scroll up|down
-                    /voice <nick>
+                    /op <nick>          /msay <text>       /scroll up|down
+                    /voice <nick>       /mme <action>
 
-CONFIG              SYSTEM              LiCe5 MODULES
-─────────────       ─────────────       ─────────────
-/set [var] [val]    /help [cmd]         /gone [msg]        /ig <pat> [fl]
-/alias [n] [body]   /raw <text>         /back [msg]        /k <n> [r]
-/unalias <name>     /exec <cmd>         /autoaway [sec]    /kb <n> [r]
-/highlight [p] [c]  /log on|off         /alarm [n] <s> <c> /ul [add|del]
-/bind [key] [act]   /load <file>        /paste [send|cxl]  /protect [#ch]
-/format [t] [tmpl]  /save               /ns <pass> [nick]  /memo [send|chk]
-/status [fmt]       /debug on|off       /signoff [reason]  /note [add|list]
-                    /timer <s> <r> <c>  /party [on|off]    /dance
-                    /notify [nick]      /sensors [en|dis]  /wall <msg>
+CONFIG              SYSTEM              LiCe5 MODULES      THEME
+─────────────       ─────────────       ─────────────      ─────────────
+/set [var] [val]    /help [cmd]         /gone [msg]        /theme
+/alias [n] [body]   /raw <text>         /back [msg]        /theme <name>
+/unalias <name>     /exec <cmd>         /autoaway [sec]    /theme list
+/highlight [p] [c]  /log on|off         /alarm [n] <s> <c>
+/bind [key] [act]   /load <file>        /paste [send|cxl]
+/format [t] [tmpl]  /save               /ns <pass> [nick]
+/status [fmt]       /debug on|off       /signoff [reason]
+                    /timer <s> <r> <c>  /party [on|off]
+                    /notify [nick]      /sensors [en|dis]
+
+LiCe5 (cont.)       USERLIST            LISTS              FUN
+─────────────       ─────────────       ─────────────      ─────────────
+/ig <pat> [fl]      /ul [add|del]       /banlist           /dance
+/k <n> [r]          /ulsave             /exclist           /disco <text>
+/kb <n> [r]         /ulw_op <nick>      /joinlist          /pic [name]
+/rk <nick>          /ulw_voice <nick>   /floodlist         /oops <text>
+/protect [#ch]      /ulw_unban <nick>   /looplist
+/memo [send|chk]    /ulw_pass <pass>    /splitlist
+/note [add|list]    /ulw_chat <nick>    /showlist
+/wall <msg>         /ulw_help           /rmlist
+/boot <n> [sec]     /ulw_whoami
 ```
 
 ---
@@ -2592,4 +3291,4 @@ Available in aliases, format templates, and conditional expressions:
 
 ---
 
-*Documentation generated for Void IRC Client v0.1.0*
+*Documentation generated for Void IRC Client v0.2.0*

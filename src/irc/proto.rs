@@ -743,7 +743,7 @@ fn handle_ctcp(app: &mut App, source: &str, buf_name: &str, content: &str, is_re
                 if let Some(s) = &app.server().sender {
                     let _ = s.send(Command::NOTICE(
                         source.to_string(),
-                        format!("\x01VERSION void IRC client v0.1.0 (Rust)\x01"),
+                        format!("\x01VERSION void IRC client v0.2.0 (Rust)\x01"),
                     ));
                 }
             }
