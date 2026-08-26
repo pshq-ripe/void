@@ -48,14 +48,22 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
     Ok(result)
 }
 
-/// SCRAM-SHA-512 state machine
+/// SCRAM hash algorithm
+#[derive(Clone, Copy)]
+enum ScramAlgo {
+    Sha256,
+    Sha512,
+}
+
+/// SCRAM state machine (supports SHA-256 and SHA-512)
 struct ScramState {
     client_first_bare: String,
     nonce: String,
+    algo: ScramAlgo,
 }
 
 impl ScramState {
-    fn new(nick: &str) -> Self {
+    fn new(nick: &str, algo: ScramAlgo) -> Self {
         // Generuj losowy nonce
         let mut nonce_bytes = [0u8; 24];
         for i in 0..24 {
@@ -67,7 +75,7 @@ impl ScramState {
         }
         let nonce = base64_encode(&nonce_bytes);
         let client_first_bare = format!("n={},r={}", nick, nonce);
-        ScramState { client_first_bare, nonce }
+        ScramState { client_first_bare, nonce, algo }
     }
 
     /// Krok 1: client-first-message
@@ -101,41 +109,62 @@ impl ScramState {
         }
 
         // SaltedPassword = PBKDF2(password, salt, iterations)
-        let mut salted_password = [0u8; 64]; // SHA-512 = 64 bytes
-        pbkdf2::derive(
-            pbkdf2::PBKDF2_HMAC_SHA512,
-            std::num::NonZeroU32::new(iterations).unwrap(),
-            &salt,
-            password.as_bytes(),
-            &mut salted_password,
-        );
+        let hash_len = match self.algo {
+            ScramAlgo::Sha256 => 32,
+            ScramAlgo::Sha512 => 64,
+        };
+        let mut salted_password = vec![0u8; hash_len];
+        match self.algo {
+            ScramAlgo::Sha256 => pbkdf2::derive(
+                pbkdf2::PBKDF2_HMAC_SHA256,
+                std::num::NonZeroU32::new(iterations).unwrap(),
+                &salt, password.as_bytes(), &mut salted_password,
+            ),
+            ScramAlgo::Sha512 => pbkdf2::derive(
+                pbkdf2::PBKDF2_HMAC_SHA512,
+                std::num::NonZeroU32::new(iterations).unwrap(),
+                &salt, password.as_bytes(), &mut salted_password,
+            ),
+        }
 
         // ClientKey = HMAC(SaltedPassword, "Client Key")
-        let client_key = hmac::Key::new(hmac::HMAC_SHA512, &salted_password);
-        let client_key_sig = hmac::sign(&client_key, b"Client Key");
-        let client_key_bytes = client_key_sig.as_ref();
+        let (client_key_bytes, stored_key) = match self.algo {
+            ScramAlgo::Sha256 => {
+                let ck = hmac::Key::new(hmac::HMAC_SHA256, &salted_password);
+                let sig = hmac::sign(&ck, b"Client Key");
+                let sk = digest::digest(&digest::SHA256, sig.as_ref());
+                (sig.as_ref().to_vec(), sk)
+            }
+            ScramAlgo::Sha512 => {
+                let ck = hmac::Key::new(hmac::HMAC_SHA512, &salted_password);
+                let sig = hmac::sign(&ck, b"Client Key");
+                let sk = digest::digest(&digest::SHA512, sig.as_ref());
+                (sig.as_ref().to_vec(), sk)
+            }
+        };
 
-        // StoredKey = H(ClientKey)
-        let stored_key = digest::digest(&digest::SHA512, client_key_bytes);
-
-        // AuthMessage = client-first-bare + "," + server-first + "," + client-final-without-proof
+        // AuthMessage
         let channel_binding = base64_encode(b"n,,");
         let client_final_without_proof = format!("c={},r={}", channel_binding, server_nonce);
         let auth_message = format!("{},{},{}", self.client_first_bare, server_first, client_final_without_proof);
 
         // ClientSignature = HMAC(StoredKey, AuthMessage)
-        let stored_key_hmac = hmac::Key::new(hmac::HMAC_SHA512, stored_key.as_ref());
-        let client_signature = hmac::sign(&stored_key_hmac, auth_message.as_bytes());
+        let client_signature = match self.algo {
+            ScramAlgo::Sha256 => {
+                let k = hmac::Key::new(hmac::HMAC_SHA256, stored_key.as_ref());
+                hmac::sign(&k, auth_message.as_bytes())
+            }
+            ScramAlgo::Sha512 => {
+                let k = hmac::Key::new(hmac::HMAC_SHA512, stored_key.as_ref());
+                hmac::sign(&k, auth_message.as_bytes())
+            }
+        };
 
         // ClientProof = ClientKey XOR ClientSignature
         let mut client_proof = Vec::with_capacity(client_key_bytes.len());
         for (a, b) in client_key_bytes.iter().zip(client_signature.as_ref().iter()) {
             client_proof.push(a ^ b);
         }
-
-        // ServerKey = HMAC(SaltedPassword, "Server Key")
-        let server_key = hmac::Key::new(hmac::HMAC_SHA512, &salted_password);
-        let _server_key_sig = hmac::sign(&server_key, b"Server Key");
         // (server_key_bytes nie jest potrzebny w client-final, ale potrzebny do weryfikacji)
 
         let proof_b64 = base64_encode(&client_proof);
@@ -303,8 +332,8 @@ pub async fn spawn_connection(
                                                     if creds.to_uppercase() == "EXTERNAL" {
                                                         desired.push_str(",sasl=EXTERNAL");
                                                     } else if creds.contains(':') {
-                                                        // PLAIN or SCRAM — request both
-                                                        desired.push_str(",sasl=SCRAM-SHA-512,PLAIN");
+                                                        // PLAIN or SCRAM — request all
+                                                        desired.push_str(",sasl=SCRAM-SHA-512,SCRAM-SHA-256,PLAIN");
                                                     }
                                                 }
                                             }
@@ -400,8 +429,8 @@ pub async fn spawn_connection(
                                                         "AUTHENTICATE +".into(), Vec::new()
                                                     ));
                                                 } else if let Some((nick, _pass)) = creds.split_once(':') {
-                                                    // SASL SCRAM-SHA-512: client-first-message
-                                                    let scram = ScramState::new(nick);
+                                                    // SASL SCRAM: client-first-message (SHA-512 preferred)
+                                                    let scram = ScramState::new(nick, ScramAlgo::Sha512);
                                                     let client_first = scram.client_first();
                                                     let encoded = base64_encode(client_first.as_bytes());
                                                     scram_state = Some(scram);
