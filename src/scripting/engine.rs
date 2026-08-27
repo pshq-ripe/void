@@ -10,15 +10,27 @@ pub fn init_lua() -> LuaResult<Lua> {
 
 /// Załaduj config.lua i skrypty (wywoływane PO register_api)
 pub fn load_scripts(lua: &Lua) {
-    // Wczytanie config.lua
+    let home = std::env::var("HOME").unwrap_or_default();
+    let void_dir = std::path::PathBuf::from(&home).join(".void");
+
+    // Wczytaj config.lua z CWD lub ~/.void/
     if let Ok(script) = std::fs::read_to_string("config.lua") {
         if let Err(e) = lua.load(&script).exec() {
             eprintln!("Error loading config.lua: {}", e);
         }
+    } else if let Ok(script) = std::fs::read_to_string(void_dir.join("config.lua")) {
+        if let Err(e) = lua.load(&script).exec() {
+            eprintln!("Error loading ~/.void/config.lua: {}", e);
+        }
     }
 
-    // Wczytaj skrypty z katalogu scripts/ jeśli istnieje
+    // Wczytaj skrypty z katalogu scripts/ lub ~/.void/scripts/
     load_scripts_dir(lua, "scripts");
+    load_scripts_dir(lua, &void_dir.join("scripts").to_string_lossy());
+
+    // Wczytaj moduły z modules/ lub ~/.void/modules/
+    load_scripts_dir(lua, "modules");
+    load_scripts_dir(lua, &void_dir.join("modules").to_string_lossy());
 }
 
 /// Wczytaj wszystkie .lua z katalogu

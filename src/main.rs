@@ -241,8 +241,12 @@ async fn main() -> Result<()> {
         // Draw
         renderer::draw(&mut terminal, &app)?;
 
-        // Non-blocking poll z kanałów + timer tick
+        // Non-blocking poll z kanałów + timer tick + redraw timeout
         tokio::select! {
+            // Redraw co 100ms nawet bez eventów (fix: mode lag)
+            _ = tokio::time::sleep(Duration::from_millis(100)) => {
+                // Timeout — redraw
+            }
             Some(_) = resize_rx.recv() => {
                 // Terminal resize — wymuś redraw
                 let _ = terminal.clear();

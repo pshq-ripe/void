@@ -230,6 +230,14 @@ fn cmd_disconnect(app: &mut App, _args: &[&str]) -> CommandResult {
     }
     app.server_mut().connected = false;
     app.server_mut().sender = None;
+    app.server_mut().lag_ms = 0;
+    app.server_mut().lag_ping_sent = None;
+    // Wyczyść nick list we wszystkich kanałach
+    for buf in &mut app.buffers {
+        if buf.name != "(Status)" {
+            buf.nicks.clear();
+        }
+    }
     app.system_message("-!- Disconnected.");
     CommandResult::Ok
 }
