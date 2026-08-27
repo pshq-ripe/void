@@ -2897,7 +2897,109 @@ Alt+K 4,7Hello Alt+K  -- "Hello" in red on white
 
 ---
 
-## 10. Architecture
+## 10. IRC Proxy/Bouncer
+
+Void can act as an IRC bouncer server, allowing other IRC clients to connect and share the same IRC sessions.
+
+### 10.1 Starting the Bouncer
+
+```
+/bouncer start <port> [password]
+```
+
+Example:
+```
+/bouncer start 6667 mypassword
+```
+
+### 10.2 Connecting to the Bouncer
+
+From another IRC client:
+```
+/server localhost 6667 mypassword
+```
+
+### 10.3 Bouncer Commands
+
+| Command | Description |
+|---------|-------------|
+| `/bouncer start <port> [password]` | Start bouncer on specified port |
+| `/bouncer stop` | Stop bouncer |
+| `/bouncer status` | Show connected clients |
+
+---
+
+## 11. irssi Parity Features
+
+Void implements all high and medium priority features from irssi:
+
+### 11.1 Lag Meter
+- Real-time latency measurement via PING/PONG
+- Displayed in status bar with color coding (green <100ms, yellow <300ms, red >300ms)
+- `%L` format variable
+
+### 11.2 Raw Log Viewer
+- `/rawlog on|off|show|save|clear`
+- Records all raw IRC protocol messages
+- Limit 1000 entries
+
+### 11.3 Lastlog Search
+- `/lastlog <pattern>` — case-insensitive search
+- `/lastlog /regex/` — regex pattern match
+- `/lastlog -level msg|action|notice|system|error` — filter by type
+- `/lastlog -window #channel` — search specific buffer
+
+### 11.4 Netsplit Detection
+- Detects netsplits from QUIT reasons containing `*.net *.split`
+- Tracks lost nicks during netsplit
+- Announces recovery when nicks rejoin
+
+### 11.5 Session Save/Restore
+- Saves current buffer list to SQLite
+- Auto-joins saved channels on reconnect
+
+### 11.6 Ban List Tracking
+- Tracks bans per channel from RPL_BANLIST
+- Persistent during session
+
+### 11.7 Window Layout Persistence
+- Saves split state and direction to SQLite
+
+### 11.8 Chatnet/Network Config
+- `/chatnet add <name> <servers> [port] [tls]` — create network config
+- `/chatnet del <name>` — remove
+- `/chatnet list` — show all
+
+### 11.9 Notify List with WHOIS Verification
+- ISON polling every 60 seconds
+- WHOIS verification for newly online nicks
+- Tracks userhost, channels, last_seen
+
+### 11.10 Massjoin Batching
+- Detects rapid JOINs within 500ms window
+- Batches and displays as single message
+
+### 11.11 Nickmatch Cache
+- Caches pattern matching results for performance
+- Limit 1000 entries
+
+### 11.12 DCC Chat
+- `/dcc chat <nick>` — send DCC CHAT request
+- DccChatSession tracking
+
+### 11.13 DCC Resume
+- `resume_send()` — resume interrupted transfers
+
+### 11.14 Server Redirect Tracking
+- Correlates responses to requests
+
+### 11.15 Character Encoding
+- `/charset <encoding>` — set per-buffer charset
+- Supports UTF-8, ISO-8859-1/2/15, WINDOWS-1252/1250/1251, ASCII
+
+---
+
+## 12. Architecture
 
 ### 10.1 Source Code Structure
 

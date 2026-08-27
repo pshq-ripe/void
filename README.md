@@ -18,10 +18,26 @@ A modern, Lua-scriptable IRC client written in Rust, inspired by **epic5** with 
 - **Nick coloring** — hash-based consistent colors per nick
 - **URL detection** — automatic highlighting of URLs in messages
 - **DCC SEND** — file transfer receive
+- **DCC Chat** — peer-to-peer messaging
+- **DCC Resume** — resume interrupted transfers
 - **SOCKS5 proxy** — connect through proxy servers
 - **Auto-reconnect** — with channel rejoin tracking
 - **Message breaking** — automatic word-boundary splitting at 490 bytes
 - **Labeled-response** — IRCv3 message correlation
+- **IRC Proxy/Bouncer** — act as a bouncer server for other clients
+- **Lag meter** — real-time latency measurement
+- **Raw log viewer** — inspect raw IRC protocol
+- **Lastlog search** — regex search with level filtering
+- **Netsplit detection** — track splits and recoveries
+- **Session save/restore** — auto-join saved channels on reconnect
+- **Ban list tracking** — persistent per-channel ban lists
+- **Window layout persistence** — save/restore split state
+- **Chatnet/network config** — group servers by IRC network
+- **Notify list** — ISON polling with WHOIS verification
+- **Massjoin batching** — batch rapid joins during netsplit
+- **Nickmatch cache** — performance optimization for large nick lists
+- **Character encoding** — per-buffer charset support (UTF-8, ISO-8859-1, etc.)
+- **Format string engine** — configurable status bar and event formats
 
 ## Quick Start
 
@@ -95,6 +111,55 @@ Load all modules: `/load modules/init.lua`
 | `party` | `/party`, `/disco`, `/dance` | Party mode with disco colors |
 | `sensors` | `/sensors` | Channel activity monitoring |
 | `help` | `/lice_help` | Enhanced help system |
+| `banlist` | `/banlist` | Ban list management |
+| `exclist` | `/exclist` | Exception list management |
+| `invlist` | `/invexlist` | Invite exception list |
+| `joinlist` | `/joinlist` | Join tracking / clone detection |
+| `serverignore` | `/silence` | Server-level ignore |
+| `play` | `/play` | Log replay |
+| `chanlog` | `/chanlog` | Per-channel logging |
+| `news` | `/news` | News system |
+| `update` | `/update` | Update checker |
+| `oops` | `/oops` | Quick fix last message |
+| `splitlist` | `/splitlist` | Netsplit tracking |
+| `show_list` | `/showlist` | Unified list display |
+| `remove_list` | `/rmlist` | Unified list removal |
+| `refriend` | `/refriend` | Quick friend management |
+| `rel` | `/rel` | Relationship tracking |
+| `noig` | `/noig` | No-ignore whitelist |
+| `pager` | `/pager` | In-client file pager |
+| `wget` | `/wget` | URL fetch |
+| `trans` | `/trans` | Translation helper |
+| `define` | `/define` | Dictionary lookup |
+| `sc` | `/sc` | Screen/tmux integration |
+| `mk` | `/mk` | File creation helper |
+| `mme` | `/mme` | Mass message to targets |
+| `msay` | `/msay` | Multi-target say |
+| `mtog` | `/mtog` | Message toggle |
+| `ctog` | `/ctog` | Channel feature toggle |
+| `dtog` | `/dtog` | Display feature toggle |
+| `wtog` | `/wtog` | Window feature toggle |
+| `tog` | `/tog` | Generic toggle |
+| `dom` | `/dom` | Domain operations |
+| `dump` | `/dump` | Debug dump |
+| `ul_save` | `/ulsave` | Userlist save/load |
+| `ulw` | `/ulw_*` | Userlist window commands |
+| `tab_comp` | `/tabcomp` | Tab completion |
+| `bword` | `/bword` | Word manipulation |
+| `binds` | `/binds` | Key binding management |
+| `defaults` | `/defaults` | Default settings |
+| `imail` | `/imail` | Internal mail system |
+| `floodlist` | `/floodlist` | Flood protection exceptions |
+| `looplist` | `/looplist` | Loop through lists |
+| `pic` | `/pic` | ASCII art pictures |
+| `ppl` | `/ppl` | People tracking |
+| `chanst` | `/chanst` | Channel status |
+| `cwho` | `/cwho` | Channel WHO |
+| `et` | `/et` | Enhanced topic |
+| `db` | `/db` | Key-value database |
+| `fkeys` | `/fkey` | Function key bindings |
+| `boot` | `/boot` | Boot sequence |
+| `stubs` | `/adcc`, `/dcclist`, `/rdcc`, `/redcc` | DCC stubs |
 
 ## Lua API
 
@@ -128,7 +193,7 @@ end
 | Encoding | `void.base64_encode()`, `void.base64_decode()`, `void.hex_encode()`, `void.hex_decode()`, `void.xform()` |
 | File I/O | `void.file_read()`, `void.file_write()`, `void.file_append()` |
 | Formatting | `void.color()`, `void.bold()`, `void.italic()`, `void.underline()`, `void.reverse()`, `void.reset()` |
-| Misc | `void.random()`, `void.json_encode()`, `void.json_decode()`, `void.timer()`, `void.send()`, `void.set()`, `void.get()`, `void.ison()`, `void.userhost()`, `void.log()`, `void.load()`, `void.exec()` |
+| Misc | `void.random()`, `void.json_encode()`, `void.json_decode()`, `void.timer()`, `void.send()`, `void.set()`, `void.get()`, `void.ison()`, `void.userhost()`, `void.log()`, `void.load()`, `void.exec()`, `void.apply_theme()` |
 
 ## Configuration
 
@@ -148,11 +213,13 @@ cargo test --test lua_integration -- --nocapture
 - **epic5** — IRC client that inspired Void's architecture and command set
 - **LiCe5** — Script pack for epic5 that provided the module system
 - **epic6** — Next generation IRC client with modern features
+- **irssi** — IRC client that inspired lag meter, raw log, netsplit, massjoin, and other features
 - **irc crate** — Rust IRC protocol library
 - **ratatui** — Rust TUI framework
 - **mlua** — Rust Lua bindings
 - **ring** — Rust cryptography library
 - **rusqlite** — Rust SQLite bindings (with SQLCipher)
+- **encoding_rs** — Character encoding library
 
 ## License
 
