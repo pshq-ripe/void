@@ -551,12 +551,9 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             Style::default().fg(app.theme_colors.border).bg(app.theme_colors.status_bar_bg),
         ));
 
-        // Format engine — expand status format string
-        let status_text = crate::format::expand_status_format(app, &app.status_format);
-        buf_spans.push(Span::styled(
-            status_text,
-            Style::default().fg(app.theme_colors.status_bar_info_fg).bg(app.theme_colors.status_bar_bg),
-        ));
+        // Format engine — expand status format string with styled spans
+        let status_spans = crate::format::expand_status_format(app, &app.status_format);
+        buf_spans.extend(status_spans);
 
         // Scroll indicator
         let scroll_offset = app.buffers[app.current_buffer_idx].scroll_offset;

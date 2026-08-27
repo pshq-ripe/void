@@ -1,100 +1,137 @@
 /// Format string engine — epic5/LiCe5 style
 /// Replaces %T, %N, %C, etc. with actual values
-/// Supports IRC color codes in format strings
+/// Returns styled spans with theme colors
 
 use crate::app::App;
+use ratatui::{
+    style::{Color, Modifier, Style},
+    text::Span,
+};
 
-/// Replace format variables in a template string
+/// Replace format variables and return styled spans
 /// Variables: %T=time, %N=nick, %C=channel, %S=server, %W=window,
-///            %A=away, %H=host, %M=modes, %L=lag, %=pad, %>right-align
-pub fn expand_status_format(app: &App, template: &str) -> String {
-    let mut result = String::new();
+///            %A=away, %H=host, %M=modes, %L=lag, %#=nickcount, %*=unread
+pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
+    let mut spans = Vec::new();
+    let mut current_text = String::new();
     let mut chars = template.chars().peekable();
+    let bg = app.theme_colors.status_bar_bg;
+
+    let flush = |text: &mut String, spans: &mut Vec<Span<'a>>, fg: Color, bg: Color| {
+        if !text.is_empty() {
+            spans.push(Span::styled(text.clone(), Style::default().fg(fg).bg(bg)));
+            text.clear();
+        }
+    };
 
     while let Some(c) = chars.next() {
         if c == '%' {
             match chars.next() {
                 Some('T') => {
-                    // Time
-                    result.push_str(&chrono::Local::now().format("%H:%M").to_string());
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    let time = chrono::Local::now().format("%H:%M").to_string();
+                    spans.push(Span::styled(time, Style::default().fg(Color::Cyan).bg(bg)));
                 }
                 Some('N') => {
-                    // Nick
-                    result.push_str(&app.server().our_nick);
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    spans.push(Span::styled(
+                        app.server().our_nick.clone(),
+                        Style::default().fg(Color::LightGreen).bg(bg).add_modifier(Modifier::BOLD),
+                    ));
                 }
                 Some('C') => {
-                    // Channel
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
                     let buf = &app.buffers[app.current_buffer_idx];
                     if buf.name != "(Status)" {
-                        result.push_str(&buf.name);
+                        spans.push(Span::styled(
+                            buf.name.clone(),
+                            Style::default().fg(Color::LightCyan).bg(bg),
+                        ));
                     }
                 }
                 Some('S') => {
-                    // Server
-                    result.push_str(&app.server().host);
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    spans.push(Span::styled(
+                        app.server().host.clone(),
+                        Style::default().fg(Color::DarkGray).bg(bg),
+                    ));
                 }
                 Some('W') => {
-                    // Window number
-                    result.push_str(&app.current_buffer_idx.to_string());
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    spans.push(Span::styled(
+                        format!("[{}]", app.current_buffer_idx),
+                        Style::default().fg(Color::DarkGray).bg(bg),
+                    ));
                 }
                 Some('A') => {
-                    // Away indicator
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
                     if app.server().away_message.is_some() {
-                        result.push_str("AWAY");
+                        spans.push(Span::styled(
+                            "AWAY".to_string(),
+                            Style::default().fg(Color::Yellow).bg(bg).add_modifier(Modifier::BOLD),
+                        ));
                     }
                 }
                 Some('H') => {
-                    // Host
-                    result.push_str(&app.server().host);
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    spans.push(Span::styled(
+                        app.server().host.clone(),
+                        Style::default().fg(Color::DarkGray).bg(bg),
+                    ));
                 }
                 Some('M') => {
-                    // User modes
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
                     if !app.server().user_modes.is_empty() {
-                        result.push('+');
-                        result.push_str(&app.server().user_modes);
+                        spans.push(Span::styled(
+                            format!("+{}", app.server().user_modes),
+                            Style::default().fg(Color::DarkGray).bg(bg),
+                        ));
+                    }
+                }
+                Some('#') => {
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    let buf = &app.buffers[app.current_buffer_idx];
+                    spans.push(Span::styled(
+                        buf.nicks.len().to_string(),
+                        Style::default().fg(Color::Cyan).bg(bg),
+                    ));
+                }
+                Some('*') => {
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    let buf = &app.buffers[app.current_buffer_idx];
+                    if buf.unread_count > 0 {
+                        spans.push(Span::styled(
+                            buf.unread_count.to_string(),
+                            Style::default().fg(Color::Yellow).bg(bg).add_modifier(Modifier::BOLD),
+                        ));
                     }
                 }
                 Some('L') => {
-                    // Lag (placeholder)
-                    result.push_str("0");
-                }
-                Some('#') => {
-                    // Nick count in current channel
-                    let buf = &app.buffers[app.current_buffer_idx];
-                    result.push_str(&buf.nicks.len().to_string());
-                }
-                Some('*') => {
-                    // Unread count
-                    let buf = &app.buffers[app.current_buffer_idx];
-                    if buf.unread_count > 0 {
-                        result.push_str(&buf.unread_count.to_string());
-                    }
-                }
-                Some('=') => {
-                    // Pad to fill remaining space (handled by renderer)
-                    result.push_str(" ");
-                }
-                Some('>') => {
-                    // Right-align marker (handled by renderer)
-                    result.push_str(" ");
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    spans.push(Span::styled(
+                        "0".to_string(),
+                        Style::default().fg(Color::DarkGray).bg(bg),
+                    ));
                 }
                 Some('%') => {
-                    result.push('%');
+                    current_text.push('%');
                 }
                 Some(other) => {
-                    result.push('%');
-                    result.push(other);
+                    current_text.push('%');
+                    current_text.push(other);
                 }
                 None => {
-                    result.push('%');
+                    current_text.push('%');
                 }
             }
         } else {
-            result.push(c);
+            current_text.push(c);
         }
     }
 
-    result
+    // Flush remaining text
+    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+    spans
 }
 
 /// Expand event format templates
@@ -107,7 +144,6 @@ pub fn expand_event_format(template: &str, args: &[&str]) -> String {
         if c == '$' {
             match chars.next() {
                 Some('*') => {
-                    // All args joined
                     result.push_str(&args.join(" "));
                 }
                 Some(d @ '0'..='9') => {
@@ -140,10 +176,4 @@ pub fn strip_formatting(text: &str) -> String {
     text.chars()
         .filter(|c| !c.is_control())
         .collect()
-}
-
-/// Convert IRC color codes to ratatui-compatible format
-/// This is a placeholder — actual conversion happens in the renderer
-pub fn prepare_format_string(template: &str) -> String {
-    template.to_string()
 }
