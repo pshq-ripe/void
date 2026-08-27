@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::app::{App, MessageType, OutputContext};
 use irc::client::prelude::*;
 
@@ -148,21 +149,52 @@ pub fn handle_irc_message(app: &mut App, msg: &Message) {
             }
             if let Some(buf) = app.get_buffer_mut(&channel) {
                 buf.add_nick(&source);
-                // Extended-join: zapisz account i realname w NickEntry
                 let acct = account.as_deref().unwrap_or("");
                 let real = realname.as_deref().unwrap_or("");
                 if !acct.is_empty() || !real.is_empty() {
                     buf.set_nick_info(&source, acct, real);
                 }
             }
-            // Extended-join: pokaż account i realname jeśli dostępne
-            let join_msg = match (account.as_deref(), realname.as_deref()) {
-                (Some(acct), Some(real)) if !acct.is_empty() && !real.is_empty() => {
-                    format!("* {} has joined {} [{} / {}]", source, channel, acct, real)
+
+            // Massjoin batching — zbierz rapid JOINs i wyświetl razem
+            let now = std::time::Instant::now();
+            let is_rapid = app.server().massjoin_timer
+                .map(|t| now.duration_since(t).as_millis() < 500)
+                .unwrap_or(false);
+
+            if is_rapid || app.server().netsplit_active {
+                // Dodaj do bufora
+                app.server_mut().massjoin_buffer.push((source.clone(), channel.clone(), String::new()));
+                if app.server().massjoin_timer.is_none() {
+                    app.server_mut().massjoin_timer = Some(now);
                 }
-                _ => format!("* {} has joined {}", source, channel),
-            };
-            app.buffer_message(&channel, join_msg, MessageType::System);
+            } else {
+                // Flush poprzedni bufor jeśli jest
+                if !app.server().massjoin_buffer.is_empty() {
+                    let buffered = app.server().massjoin_buffer.clone();
+                    app.server_mut().massjoin_buffer.clear();
+                    app.server_mut().massjoin_timer = None;
+                    // Pogrupuj po kanale
+                    let mut by_channel: HashMap<String, Vec<String>> = HashMap::new();
+                    for (nick, ch, _) in buffered {
+                        by_channel.entry(ch).or_default().push(nick);
+                    }
+                    for (ch, nicks) in by_channel {
+                        let msg = format!("* {} have joined {}", nicks.join(", "), ch);
+                        app.buffer_message(&ch, msg, MessageType::System);
+                    }
+                }
+
+                // Nowy join — wyświetl normalnie
+                let join_msg = match (account.as_deref(), realname.as_deref()) {
+                    (Some(acct), Some(real)) if !acct.is_empty() && !real.is_empty() => {
+                        format!("* {} has joined {} [{} / {}]", source, channel, acct, real)
+                    }
+                    _ => format!("* {} has joined {}", source, channel),
+                };
+                app.buffer_message(&channel, join_msg, MessageType::System);
+                app.server_mut().massjoin_timer = Some(now);
+            }
 
             // Netsplit recovery detection
             if app.server().netsplit_active {

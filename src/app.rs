@@ -213,6 +213,8 @@ pub struct ServerConnection {
     pub ban_list: Vec<BanEntry>,       // tracked ban list per channel
     pub chatnets: HashMap<String, ChatNet>, // IRC network configs
     pub write_buffer: VecDeque<String>, // outgoing message buffer
+    pub massjoin_buffer: Vec<(String, String, String)>, // (nick, channel, host) buffered joins
+    pub massjoin_timer: Option<Instant>, // when first join was buffered
 }
 
 /// Konfiguracja sieci IRC (chatnet)
@@ -273,6 +275,8 @@ impl ServerConnection {
             ban_list: Vec::new(),
             chatnets: HashMap::new(),
             write_buffer: VecDeque::new(),
+            massjoin_buffer: Vec::new(),
+            massjoin_timer: None,
         }
     }
 }
