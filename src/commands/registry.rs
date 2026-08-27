@@ -141,6 +141,7 @@ impl CommandRegistry {
         self.register("SILENCE", &[], "/silence [mask] — Server-side ignore (SILENCE)", cmd_silence);
         self.register("SETNAME", &[], "/setname <realname> — Change realname on the fly", cmd_setname);
         self.register("CAPLIST", &[], "/caplist — List active IRCv3 capabilities", cmd_caplist);
+        self.register("CHATHISTORY", &[], "/chathistory <before|after|latest|around> <target> <limit> — Request message history", cmd_chathistory);
 
         // ─── Dodatkowe epic5 / irc2.11 style ────────────
         self.register("WALLOPS", &[], "/wallops <text> — Send wallops", cmd_wallops);
@@ -1867,6 +1868,84 @@ fn cmd_caplist(app: &mut App, _args: &[&str]) -> CommandResult {
             app.system_message(&format!("  {}", key));
         } else {
             app.system_message(&format!("  {}={}", key, value));
+        }
+    }
+    CommandResult::Ok
+}
+
+fn cmd_chathistory(app: &mut App, args: &[&str]) -> CommandResult {
+    if args.len() < 2 {
+        app.system_message("-!- Usage: /chathistory <subcommand> <target> [limit]");
+        app.system_message("-!- Subcommands: before, after, latest, around, targets");
+        app.system_message("-!- Examples:");
+        app.system_message("  /chathistory latest #channel 50");
+        app.system_message("  /chathistory before #channel 2023-01-01T00:00:00Z 50");
+        app.system_message("  /chathistory targets 2023-01-01T00:00:00Z 25");
+        return CommandResult::Ok;
+    }
+    let subcmd = args[0].to_lowercase();
+    let channel = app.buffers[app.current_buffer_idx].name.clone();
+
+    match subcmd.as_str() {
+        "latest" => {
+            let target = if args.len() > 1 { args[1] } else { &channel };
+            let limit = if args.len() > 2 { args[2] } else { "50" };
+            if let Some(s) = &app.server().sender {
+                let cmd = format!("CHATHISTORY LATEST {} * {}", target, limit);
+                let _ = s.send(irc::client::prelude::Command::Raw(cmd, Vec::new()));
+            }
+            app.system_message(&format!("-!- Requesting latest {} messages for {}", limit, target));
+        }
+        "before" => {
+            if args.len() < 3 {
+                return CommandResult::Error("Usage: /chathistory before <target> <timestamp> [limit]".into());
+            }
+            let target = args[1];
+            let timestamp = args[2];
+            let limit = args.get(3).unwrap_or(&"50");
+            if let Some(s) = &app.server().sender {
+                let cmd = format!("CHATHISTORY BEFORE {} timestamp={} {}", target, timestamp, limit);
+                let _ = s.send(irc::client::prelude::Command::Raw(cmd, Vec::new()));
+            }
+            app.system_message(&format!("-!- Requesting messages before {} for {}", timestamp, target));
+        }
+        "after" => {
+            if args.len() < 3 {
+                return CommandResult::Error("Usage: /chathistory after <target> <timestamp> [limit]".into());
+            }
+            let target = args[1];
+            let timestamp = args[2];
+            let limit = args.get(3).unwrap_or(&"50");
+            if let Some(s) = &app.server().sender {
+                let cmd = format!("CHATHISTORY AFTER {} timestamp={} {}", target, timestamp, limit);
+                let _ = s.send(irc::client::prelude::Command::Raw(cmd, Vec::new()));
+            }
+            app.system_message(&format!("-!- Requesting messages after {} for {}", timestamp, target));
+        }
+        "around" => {
+            if args.len() < 3 {
+                return CommandResult::Error("Usage: /chathistory around <target> <timestamp> [limit]".into());
+            }
+            let target = args[1];
+            let timestamp = args[2];
+            let limit = args.get(3).unwrap_or(&"50");
+            if let Some(s) = &app.server().sender {
+                let cmd = format!("CHATHISTORY AROUND {} timestamp={} {}", target, timestamp, limit);
+                let _ = s.send(irc::client::prelude::Command::Raw(cmd, Vec::new()));
+            }
+            app.system_message(&format!("-!- Requesting messages around {} for {}", timestamp, target));
+        }
+        "targets" => {
+            let timestamp = args.get(1).unwrap_or(&"2020-01-01T00:00:00Z");
+            let limit = args.get(2).unwrap_or(&"25");
+            if let Some(s) = &app.server().sender {
+                let cmd = format!("CHATHISTORY TARGETS timestamp={} {}", timestamp, limit);
+                let _ = s.send(irc::client::prelude::Command::Raw(cmd, Vec::new()));
+            }
+            app.system_message(&format!("-!- Requesting chat targets since {}", timestamp));
+        }
+        _ => {
+            return CommandResult::Error("Usage: /chathistory <before|after|latest|around|targets> ...".into());
         }
     }
     CommandResult::Ok
