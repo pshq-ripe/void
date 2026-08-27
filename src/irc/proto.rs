@@ -587,13 +587,24 @@ fn handle_server_response(app: &mut App, resp: Response, args: &[String], _sourc
             if args.len() >= 3 {
                 let channel = &args[1];
                 let mask = &args[2];
-                let set_by = if args.len() >= 4 { format!(" by {}", args[3]) } else { String::new() };
-                app.buffer_message(channel, format!("-!- Ban: {}{}", mask, set_by), MessageType::ServerReply);
+                let set_by = if args.len() >= 4 { args[3].clone() } else { String::new() };
+                let timestamp = if args.len() >= 5 { args[4].parse::<i64>().unwrap_or(0) } else { 0 };
+                // Track ban in list
+                app.server_mut().ban_list.push(crate::app::BanEntry {
+                    channel: channel.clone(),
+                    mask: mask.clone(),
+                    set_by: set_by.clone(),
+                    timestamp,
+                });
+                let set_by_str = if set_by.is_empty() { String::new() } else { format!(" by {}", set_by) };
+                app.buffer_message(channel, format!("-!- Ban: {}{}", mask, set_by_str), MessageType::ServerReply);
             }
         }
         Response::RPL_ENDOFBANLIST => {
             if args.len() >= 2 {
-                app.buffer_message(&args[1], "-!- End of Channel Ban List.".to_string(), MessageType::ServerReply);
+                let channel = &args[1];
+                let count = app.server_mut().ban_list.iter().filter(|b| b.channel == *channel).count();
+                app.buffer_message(channel, format!("-!- End of Channel Ban List ({} bans).", count), MessageType::ServerReply);
             }
         }
         Response::RPL_EXCEPTLIST => {

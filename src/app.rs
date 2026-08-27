@@ -206,6 +206,16 @@ pub struct ServerConnection {
     pub netsplit_nicks: Vec<String>,   // nicks lost in current netsplit
     pub netsplit_server: String,       // server that split
     pub netsplit_start: Option<std::time::Instant>,
+    pub ban_list: Vec<BanEntry>,       // tracked ban list per channel
+}
+
+/// Wpis na liście banów
+#[derive(Clone, Debug)]
+pub struct BanEntry {
+    pub channel: String,
+    pub mask: String,
+    pub set_by: String,
+    pub timestamp: i64,
 }
 
 /// Parsowane tokeny ISUPPORT (005)
@@ -243,6 +253,7 @@ impl ServerConnection {
             netsplit_nicks: Vec::new(),
             netsplit_server: String::new(),
             netsplit_start: None,
+            ban_list: Vec::new(),
         }
     }
 }
