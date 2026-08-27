@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use ratatui::style::Color;
@@ -207,6 +207,19 @@ pub struct ServerConnection {
     pub netsplit_server: String,       // server that split
     pub netsplit_start: Option<std::time::Instant>,
     pub ban_list: Vec<BanEntry>,       // tracked ban list per channel
+    pub chatnets: HashMap<String, ChatNet>, // IRC network configs
+    pub write_buffer: VecDeque<String>, // outgoing message buffer
+}
+
+/// Konfiguracja sieci IRC (chatnet)
+#[derive(Clone, Debug)]
+pub struct ChatNet {
+    pub name: String,
+    pub servers: Vec<String>,
+    pub default_port: u16,
+    pub default_tls: bool,
+    pub nickserv_pass: String,
+    pub auto_join: Vec<String>,
 }
 
 /// Wpis na liście banów
@@ -254,6 +267,8 @@ impl ServerConnection {
             netsplit_server: String::new(),
             netsplit_start: None,
             ban_list: Vec::new(),
+            chatnets: HashMap::new(),
+            write_buffer: VecDeque::new(),
         }
     }
 }

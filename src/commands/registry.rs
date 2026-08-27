@@ -144,6 +144,7 @@ impl CommandRegistry {
         self.register("CHATHISTORY", &[], "/chathistory <before|after|latest|around> <target> <limit> — Request message history", cmd_chathistory);
         self.register("STARTTLS", &[], "/starttls — Upgrade connection to TLS", cmd_starttls);
         self.register("RAWLOG", &[], "/rawlog [on|off|show|save] — Raw IRC protocol log", cmd_rawlog);
+        self.register("CHATNET", &[], "/chatnet [add|del|list] <name> — IRC network config", cmd_chatnet);
 
         // ─── Dodatkowe epic5 / irc2.11 style ────────────
         self.register("WALLOPS", &[], "/wallops <text> — Send wallops", cmd_wallops);
@@ -1944,6 +1945,60 @@ fn cmd_caplist(app: &mut App, _args: &[&str]) -> CommandResult {
             app.system_message(&format!("  {}", key));
         } else {
             app.system_message(&format!("  {}={}", key, value));
+        }
+    }
+    CommandResult::Ok
+}
+
+fn cmd_chatnet(app: &mut App, args: &[&str]) -> CommandResult {
+    if args.is_empty() || args[0] == "list" {
+        if app.server().chatnets.is_empty() {
+            app.system_message("-!- No chatnets configured.");
+            app.system_message("-!- Usage: /chatnet add <name> <server1,server2> [port] [tls]");
+        } else {
+            app.system_message("-!- Chatnets:");
+            let entries: Vec<(String, String, u16, bool, usize)> = app.server().chatnets.iter()
+                .map(|(k, v)| (k.clone(), v.servers.join(","), v.default_port, v.default_tls, v.auto_join.len()))
+                .collect();
+            for (name, servers, port, tls, channels) in entries {
+                app.system_message(&format!("  {} — {}:{} ({}) {} channels", name, servers, port, if tls { "TLS" } else { "PLAIN" }, channels));
+            }
+        }
+        return CommandResult::Ok;
+    }
+
+    match args[0].to_lowercase().as_str() {
+        "add" => {
+            if args.len() < 3 {
+                return CommandResult::Error("Usage: /chatnet add <name> <server1,server2> [port] [tls]".into());
+            }
+            let name = args[1].to_uppercase();
+            let servers: Vec<String> = args[2].split(',').map(|s| s.trim().to_string()).collect();
+            let port = args.get(3).and_then(|s| s.parse::<u16>().ok()).unwrap_or(6697);
+            let tls = args.get(4).map(|s| s.to_lowercase() == "true" || *s == "1").unwrap_or(true);
+            app.server_mut().chatnets.insert(name.clone(), crate::app::ChatNet {
+                name: name.clone(),
+                servers,
+                default_port: port,
+                default_tls: tls,
+                nickserv_pass: String::new(),
+                auto_join: Vec::new(),
+            });
+            app.system_message(&format!("-!- Chatnet added: {}", name));
+        }
+        "del" | "remove" => {
+            if args.len() < 2 {
+                return CommandResult::Error("Usage: /chatnet del <name>".into());
+            }
+            let name = args[1].to_uppercase();
+            if app.server_mut().chatnets.remove(&name).is_some() {
+                app.system_message(&format!("-!- Chatnet removed: {}", name));
+            } else {
+                app.system_message(&format!("-!- No such chatnet: {}", name));
+            }
+        }
+        _ => {
+            return CommandResult::Error("Usage: /chatnet [add|del|list] <name>".into());
         }
     }
     CommandResult::Ok
