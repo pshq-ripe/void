@@ -15,8 +15,10 @@ fn is_channel(name: &str) -> bool {
 }
 
 /// Mapowanie numerów kolorów mIRC na kolory ratatui
-fn mirc_color(n: u8) -> Color {
+/// Obsługuje standard (0-15) i extended (16-255) kolory
+fn mirc_color(n: u16) -> Color {
     match n {
+        // Standard mIRC kolory (0-15)
         0 => Color::White,
         1 => Color::Black,
         2 => Color::Blue,
@@ -33,6 +35,8 @@ fn mirc_color(n: u8) -> Color {
         13 => Color::LightMagenta,      // pink
         14 => Color::DarkGray,
         15 => Color::Gray,
+        // Extended kolory (16-255) — mapuj na ratatui indexed colors
+        16..=255 => Color::Indexed(n as u8),
         _ => Color::White,
     }
 }
@@ -92,10 +96,10 @@ fn parse_irc_formatting(text: &str, base_color: Color) -> Vec<Span<'static>> {
             }
             '\x03' => {
                 flush(&mut current_text, &mut spans, bold, italic, underline, reverse, strikethrough, fg_color, bg_color);
-                // Parsuj kolor: \x03FG[,BG]
+                // Parsuj kolor: \x03FG[,BG] — obsługuje 0-255 (256 colors)
                 let mut color_str = String::new();
                 while let Some(&next) = chars.peek() {
-                    if next.is_ascii_digit() && color_str.len() < 2 {
+                    if next.is_ascii_digit() && color_str.len() < 3 {
                         color_str.push(next);
                         chars.next();
                     } else {
@@ -113,7 +117,7 @@ fn parse_irc_formatting(text: &str, base_color: Color) -> Vec<Span<'static>> {
                         chars.next();
                         let mut bg_str = String::new();
                         while let Some(&next) = chars.peek() {
-                            if next.is_ascii_digit() && bg_str.len() < 2 {
+                            if next.is_ascii_digit() && bg_str.len() < 3 {
                                 bg_str.push(next);
                                 chars.next();
                             } else {
