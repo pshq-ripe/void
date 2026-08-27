@@ -1,7 +1,7 @@
 use futures::StreamExt;
 use irc::client::prelude::*;
 use irc::proto::CapSubCommand;
-use ring::{digest, hmac, pbkdf2};
+use ring::{digest, hmac, pbkdf2, signature};
 use tokio::sync::mpsc;
 
 /// Prosty base64 encode
@@ -53,6 +53,57 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
 enum ScramAlgo {
     Sha256,
     Sha512,
+}
+
+/// Podpisz challenge kluczem ECDSA P-256
+fn ecdsa_sign_challenge(key_path: &str, challenge_b64: &str) -> Result<String, String> {
+    // Wczytaj klucz z pliku (PEM lub DER)
+    let key_data = std::fs::read(key_path)
+        .map_err(|e| format!("Cannot read key file {}: {}", key_path, e))?;
+
+    // Parsuj PEM jeśli zaczyna się od -----BEGIN
+    let der_bytes = if key_data.starts_with(b"-----BEGIN") {
+        extract_pem_der(&key_data)?
+    } else {
+        key_data
+    };
+
+    // Dekoduj challenge z base64
+    let challenge = base64_decode(challenge_b64)?;
+
+    // Podpisz kluczem ECDSA P-256
+    let key_pair = signature::EcdsaKeyPair::from_pkcs8(
+        &signature::ECDSA_P256_SHA256_ASN1_SIGNING,
+        &der_bytes,
+        &ring::rand::SystemRandom::new(),
+    ).map_err(|e| format!("Cannot load ECDSA key: {:?}", e))?;
+
+    let signature = key_pair.sign(
+        &ring::rand::SystemRandom::new(),
+        &challenge,
+    ).map_err(|e| format!("ECDSA sign error: {:?}", e))?;
+
+    Ok(base64_encode(signature.as_ref()))
+}
+
+/// Wyciągnij DER bytes z PEM
+fn extract_pem_der(pem: &[u8]) -> Result<Vec<u8>, String> {
+    let pem_str = std::str::from_utf8(pem).map_err(|_| "Invalid PEM encoding")?;
+    let mut in_body = false;
+    let mut b64 = String::new();
+    for line in pem_str.lines() {
+        if line.starts_with("-----BEGIN") {
+            in_body = true;
+            continue;
+        }
+        if line.starts_with("-----END") {
+            break;
+        }
+        if in_body {
+            b64.push_str(line.trim());
+        }
+    }
+    base64_decode(&b64)
 }
 
 /// SCRAM state machine (supports SHA-256 and SHA-512)
@@ -331,7 +382,10 @@ pub async fn spawn_connection(
                                                 if let Some(ref creds) = sasl {
                                                     if creds.to_uppercase() == "EXTERNAL" {
                                                         desired.push_str(",sasl=EXTERNAL");
-                                                    } else if creds.contains(':') {
+                                                    } else if creds.starts_with("ecdsa:") {
+                                                    // ECDSA-NIST256P-CHALLENGE
+                                                    desired.push_str(",sasl=ECDSA-NIST256P-CHALLENGE");
+                                                } else if creds.contains(':') {
                                                         // PLAIN or SCRAM — request all
                                                         desired.push_str(",sasl=SCRAM-SHA-512,SCRAM-SHA-256,PLAIN");
                                                     }
@@ -394,6 +448,29 @@ pub async fn spawn_connection(
                                     if let Command::Raw(ref raw, _) = msg.command {
                                         if raw.starts_with("AUTHENTICATE ") {
                                             let challenge = raw[13..].to_string();
+                                            // Sprawdź czy to ECDSA challenge
+                                            if let Some(ref creds) = sasl {
+                                                if creds.starts_with("ecdsa:") {
+                                                    // ECDSA: podpisz challenge
+                                                    let key_path = &creds[6..];
+                                                    match ecdsa_sign_challenge(key_path, &challenge) {
+                                                        Ok(sig_b64) => {
+                                                            let _ = tx.send(IrcEvent::Status(
+                                                                "-!- ECDSA: sending signature...".into()
+                                                            )).await;
+                                                            let _ = sender.send(Command::Raw(
+                                                                format!("AUTHENTICATE {}", sig_b64), Vec::new()
+                                                            ));
+                                                        }
+                                                        Err(e) => {
+                                                            let _ = tx.send(IrcEvent::Status(
+                                                                format!("-!- ECDSA error: {}", e)
+                                                            )).await;
+                                                            let _ = sender.send(Command::Raw("AUTHENTICATE *".into(), Vec::new()));
+                                                        }
+                                                    }
+                                                }
+                                            }
                                             // SCRAM-SHA-512: server-first-message
                                             if let Some(ref scram) = scram_state {
                                                 if let Some(ref creds) = sasl {
@@ -427,6 +504,17 @@ pub async fn spawn_connection(
                                                     )).await;
                                                     let _ = sender.send(Command::Raw(
                                                         "AUTHENTICATE +".into(), Vec::new()
+                                                    ));
+                                                } else if creds.starts_with("ecdsa:") {
+                                                    // SASL ECDSA-NIST256P-CHALLENGE
+                                                    let key_path = &creds[6..];
+                                                    let _ = tx.send(IrcEvent::Status(
+                                                        format!("-!- Starting SASL ECDSA (key: {})...", key_path)
+                                                    )).await;
+                                                    // ECDSA: wyślij nick jako pierwszą wiadomość
+                                                    let encoded = base64_encode(nickname.as_bytes());
+                                                    let _ = sender.send(Command::Raw(
+                                                        format!("AUTHENTICATE {}", encoded), Vec::new()
                                                     ));
                                                 } else if let Some((nick, _pass)) = creds.split_once(':') {
                                                     // SASL SCRAM: client-first-message (SHA-512 preferred)

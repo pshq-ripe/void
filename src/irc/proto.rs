@@ -754,6 +754,12 @@ fn handle_server_response(app: &mut App, resp: Response, args: &[String], _sourc
             app.system_message("-!- End of monitor list.");
         }
 
+        // ─── STARTTLS (670) ─────────────────────────────
+        _ if resp as u16 == 670 => {
+            app.system_message("-!- STARTTLS: Server supports TLS upgrade.");
+            app.system_message("-!- Note: Reconnect with TLS enabled for secure connection.");
+        }
+
         // ─── Nierozpoznane (wypisz jako raw) ─────────
         _ => {
             // Wyswietl odpowiedzi serwera w oknie statusu
