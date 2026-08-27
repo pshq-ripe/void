@@ -1,6 +1,4 @@
--- Catppuccin Mocha Theme
--- Soothing pastel color scheme
-
+-- Catppuccin Mocha Theme — soothing pastel colors
 void_themes.register("Catppuccin", {
     name = "Catppuccin",
     desc = "Soothing pastel color scheme (Mocha variant)",

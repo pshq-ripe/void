@@ -1,6 +1,4 @@
--- Nord Theme (inspired by MiMo-Code nord.json)
--- Arctic, north-bluish color palette
-
+-- Nord Theme — arctic blue palette
 void_themes.register("Nord", {
     name = "Nord",
     desc = "Arctic north-bluish color palette",

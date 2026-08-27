@@ -1,6 +1,4 @@
--- Matrix Theme
--- Green-on-black hacker aesthetic
-
+-- Matrix Theme — green-on-black hacker aesthetic
 void_themes.register("Matrix", {
     name = "Matrix",
     desc = "Green-on-black hacker aesthetic",

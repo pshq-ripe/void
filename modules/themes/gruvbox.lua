@@ -1,6 +1,4 @@
--- Gruvbox Theme
--- Retro groove warm color scheme
-
+-- Gruvbox Theme — retro groove warm colors
 void_themes.register("Gruvbox", {
     name = "Gruvbox",
     desc = "Retro groove warm color scheme",

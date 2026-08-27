@@ -1,6 +1,4 @@
--- Tokyo Night Theme
--- Dark theme inspired by Tokyo's night lights
-
+-- Tokyo Night Theme — dark theme with vibrant accents
 void_themes.register("TokyoNight", {
     name = "TokyoNight",
     desc = "Dark theme inspired by Tokyo's night lights",

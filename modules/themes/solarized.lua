@@ -1,6 +1,4 @@
--- Solarized Dark Theme
--- Precision colors for machines and people
-
+-- Solarized Dark Theme — precision colors
 void_themes.register("Solarized", {
     name = "Solarized",
     desc = "Precision colors for machines and people",

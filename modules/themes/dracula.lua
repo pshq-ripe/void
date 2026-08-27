@@ -1,9 +1,7 @@
--- Dracula Theme
--- Dark theme with vibrant colors
-
+-- Dracula Theme — vibrant dark theme
 void_themes.register("Dracula", {
     name = "Dracula",
-    desc = "Dark theme with vibrant neon colors",
+    desc = "Vibrant dark theme with neon accents",
     ui = {
         status_bar_bg = "magenta",
         status_bar_fg = "black",

@@ -449,24 +449,75 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
 
         // ─── Nicks list (tylko na kanałach) ─────────────
         if show_nicks {
-            let nicks_text: Vec<Line> = buf
-                .nicks
-                .iter()
-                .map(|n| {
+            let mut nicks_text: Vec<Line> = Vec::new();
+
+            // Grupuj nicki po typie
+            let mut ops: Vec<&crate::app::NickEntry> = Vec::new();
+            let mut voices: Vec<&crate::app::NickEntry> = Vec::new();
+            let mut regulars: Vec<&crate::app::NickEntry> = Vec::new();
+
+            for n in &buf.nicks {
+                if n.prefix.contains('@') || n.prefix.contains('~') || n.prefix.contains('&') {
+                    ops.push(n);
+                } else if n.prefix.contains('+') || n.prefix.contains('%') {
+                    voices.push(n);
+                } else {
+                    regulars.push(n);
+                }
+            }
+
+            // Ops
+            if !ops.is_empty() {
+                nicks_text.push(Line::from(Span::styled(
+                    format!(" Ops ({})", ops.len()),
+                    Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC),
+                )));
+                for n in &ops {
                     let (prefix_color, nick_color) = match n.prefix.as_str() {
-                        s if s.contains('@') => (app.theme_colors.nick_op, app.theme_colors.nick_op_nick),
-                        s if s.contains('+') => (app.theme_colors.nick_voice, app.theme_colors.nick_voice_nick),
-                        s if s.contains('%') => (app.theme_colors.nick_halfop, app.theme_colors.nick_halfop_nick),
                         s if s.contains('~') => (app.theme_colors.nick_founder, app.theme_colors.nick_founder_nick),
                         s if s.contains('&') => (app.theme_colors.nick_admin, app.theme_colors.nick_admin_nick),
-                        _ => (app.theme_colors.nick_normal_prefix, app.theme_colors.nick_normal),
+                        _ => (app.theme_colors.nick_op, app.theme_colors.nick_op_nick),
                     };
-                    Line::from(vec![
+                    nicks_text.push(Line::from(vec![
                         Span::styled(&n.prefix, Style::default().fg(prefix_color)),
                         Span::styled(&n.nick, Style::default().fg(nick_color)),
-                    ])
-                })
-                .collect();
+                    ]));
+                }
+            }
+
+            // Voices
+            if !voices.is_empty() {
+                nicks_text.push(Line::from(Span::styled(
+                    format!(" Voices ({})", voices.len()),
+                    Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC),
+                )));
+                for n in &voices {
+                    let (prefix_color, nick_color) = if n.prefix.contains('%') {
+                        (app.theme_colors.nick_halfop, app.theme_colors.nick_halfop_nick)
+                    } else {
+                        (app.theme_colors.nick_voice, app.theme_colors.nick_voice_nick)
+                    };
+                    nicks_text.push(Line::from(vec![
+                        Span::styled(&n.prefix, Style::default().fg(prefix_color)),
+                        Span::styled(&n.nick, Style::default().fg(nick_color)),
+                    ]));
+                }
+            }
+
+            // Regular nicks
+            if !regulars.is_empty() {
+                nicks_text.push(Line::from(Span::styled(
+                    format!(" Users ({})", regulars.len()),
+                    Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC),
+                )));
+                for n in &regulars {
+                    nicks_text.push(Line::from(Span::styled(
+                        &n.nick,
+                        Style::default().fg(app.theme_colors.nick_normal),
+                    )));
+                }
+            }
+
             let nicks_paragraph = Paragraph::new(nicks_text).block(
                 Block::default()
                     .borders(Borders::LEFT)
@@ -571,15 +622,17 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         // ─── Input line ─────────────────────────────────
         let prompt = app.settings.get("INPUT_PROMPT").to_string();
         let cursor_pos = app.input_cursor_pos;
-        let display_input = format!("{}{}", prompt, app.input_text);
-        let input_block = Paragraph::new(Span::styled(
-            &display_input,
-            Style::default().fg(app.theme_colors.input_fg),
-        ))
+
+        // Prompt w kolorze theme, tekst w kolorze input_fg
+        let input_spans = vec![
+            Span::styled(&prompt, Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(&app.input_text, Style::default().fg(app.theme_colors.input_fg)),
+        ];
+        let input_block = Paragraph::new(Line::from(input_spans))
         .block(
             Block::default()
                 .borders(Borders::TOP)
-                .border_style(Style::default().fg(Color::DarkGray)),
+                .border_style(Style::default().fg(app.theme_colors.border)),
         );
         f.render_widget(input_block, main_chunks[3]);
 
