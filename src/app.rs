@@ -333,13 +333,24 @@ pub struct HighlightPattern {
 #[derive(Clone)]
 pub struct ThemeColors {
     pub name: String,
+    // Status bar
     pub status_bar_bg: Color,
     pub status_bar_fg: Color,
+    pub status_bar_active_bg: Color,
+    pub status_bar_active_fg: Color,
+    pub status_bar_activity_bg: Color,
+    pub status_bar_activity_fg: Color,
+    pub status_bar_info_fg: Color,
+    // Topic bar
     pub topic_bar_bg: Color,
     pub topic_bar_fg: Color,
+    // Input
     pub input_fg: Color,
+    // Borders
     pub border: Color,
+    // Timestamps
     pub timestamp: Color,
+    // Messages
     pub msg_normal: Color,
     pub msg_action: Color,
     pub msg_system: Color,
@@ -348,12 +359,22 @@ pub struct ThemeColors {
     pub msg_error: Color,
     pub msg_server: Color,
     pub msg_ctcp: Color,
+    // Nick list
     pub nick_op: Color,
+    pub nick_op_nick: Color,
     pub nick_voice: Color,
+    pub nick_voice_nick: Color,
     pub nick_halfop: Color,
+    pub nick_halfop_nick: Color,
     pub nick_founder: Color,
+    pub nick_founder_nick: Color,
     pub nick_admin: Color,
+    pub nick_admin_nick: Color,
     pub nick_normal: Color,
+    pub nick_normal_prefix: Color,
+    // Chat background
+    pub chat_bg: Color,
+    pub nick_list_bg: Color,
 }
 
 impl Default for ThemeColors {
@@ -362,6 +383,11 @@ impl Default for ThemeColors {
             name: "Default".into(),
             status_bar_bg: Color::Green,
             status_bar_fg: Color::Black,
+            status_bar_active_bg: Color::LightGreen,
+            status_bar_active_fg: Color::Black,
+            status_bar_activity_bg: Color::DarkGray,
+            status_bar_activity_fg: Color::White,
+            status_bar_info_fg: Color::Black,
             topic_bar_bg: Color::Green,
             topic_bar_fg: Color::Black,
             input_fg: Color::LightGreen,
@@ -376,11 +402,19 @@ impl Default for ThemeColors {
             msg_server: Color::DarkGray,
             msg_ctcp: Color::Red,
             nick_op: Color::Red,
+            nick_op_nick: Color::LightGreen,
             nick_voice: Color::Yellow,
+            nick_voice_nick: Color::Green,
             nick_halfop: Color::Cyan,
+            nick_halfop_nick: Color::Green,
             nick_founder: Color::Magenta,
+            nick_founder_nick: Color::LightGreen,
             nick_admin: Color::Red,
+            nick_admin_nick: Color::LightGreen,
             nick_normal: Color::Green,
+            nick_normal_prefix: Color::DarkGray,
+            chat_bg: Color::Black,
+            nick_list_bg: Color::Black,
         }
     }
 }
@@ -827,6 +861,11 @@ impl App {
                     if let Ok(ui) = theme_table.get::<mlua::Table>("ui") {
                         if let Ok(v) = ui.get::<String>("status_bar_bg") { self.theme_colors.status_bar_bg = parse_color(&v); }
                         if let Ok(v) = ui.get::<String>("status_bar_fg") { self.theme_colors.status_bar_fg = parse_color(&v); }
+                        if let Ok(v) = ui.get::<String>("status_bar_active_bg") { self.theme_colors.status_bar_active_bg = parse_color(&v); }
+                        if let Ok(v) = ui.get::<String>("status_bar_active_fg") { self.theme_colors.status_bar_active_fg = parse_color(&v); }
+                        if let Ok(v) = ui.get::<String>("status_bar_activity_bg") { self.theme_colors.status_bar_activity_bg = parse_color(&v); }
+                        if let Ok(v) = ui.get::<String>("status_bar_activity_fg") { self.theme_colors.status_bar_activity_fg = parse_color(&v); }
+                        if let Ok(v) = ui.get::<String>("status_bar_info_fg") { self.theme_colors.status_bar_info_fg = parse_color(&v); }
                         if let Ok(v) = ui.get::<String>("topic_bar_bg") { self.theme_colors.topic_bar_bg = parse_color(&v); }
                         if let Ok(v) = ui.get::<String>("topic_bar_fg") { self.theme_colors.topic_bar_fg = parse_color(&v); }
                         if let Ok(v) = ui.get::<String>("input_fg") { self.theme_colors.input_fg = parse_color(&v); }
@@ -847,11 +886,17 @@ impl App {
                     // Czytaj nick colors
                     if let Ok(nicks) = theme_table.get::<mlua::Table>("nicks") {
                         if let Ok(v) = nicks.get::<String>("op") { self.theme_colors.nick_op = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<String>("op_nick") { self.theme_colors.nick_op_nick = parse_color(&v); }
                         if let Ok(v) = nicks.get::<String>("voice") { self.theme_colors.nick_voice = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<String>("voice_nick") { self.theme_colors.nick_voice_nick = parse_color(&v); }
                         if let Ok(v) = nicks.get::<String>("halfop") { self.theme_colors.nick_halfop = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<String>("halfop_nick") { self.theme_colors.nick_halfop_nick = parse_color(&v); }
                         if let Ok(v) = nicks.get::<String>("founder") { self.theme_colors.nick_founder = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<String>("founder_nick") { self.theme_colors.nick_founder_nick = parse_color(&v); }
                         if let Ok(v) = nicks.get::<String>("admin") { self.theme_colors.nick_admin = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<String>("admin_nick") { self.theme_colors.nick_admin_nick = parse_color(&v); }
                         if let Ok(v) = nicks.get::<String>("normal") { self.theme_colors.nick_normal = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<String>("normal_prefix") { self.theme_colors.nick_normal_prefix = parse_color(&v); }
                     }
                     self.theme_colors.name = theme_name.to_string();
                 }

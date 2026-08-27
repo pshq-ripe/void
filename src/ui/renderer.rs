@@ -454,12 +454,12 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
                 .iter()
                 .map(|n| {
                     let (prefix_color, nick_color) = match n.prefix.as_str() {
-                        s if s.contains('@') => (app.theme_colors.nick_op, Color::LightGreen),
-                        s if s.contains('+') => (app.theme_colors.nick_voice, app.theme_colors.nick_normal),
-                        s if s.contains('%') => (app.theme_colors.nick_halfop, app.theme_colors.nick_normal),
-                        s if s.contains('~') => (app.theme_colors.nick_founder, Color::LightGreen),
-                        s if s.contains('&') => (app.theme_colors.nick_admin, Color::LightGreen),
-                        _ => (Color::DarkGray, app.theme_colors.nick_normal),
+                        s if s.contains('@') => (app.theme_colors.nick_op, app.theme_colors.nick_op_nick),
+                        s if s.contains('+') => (app.theme_colors.nick_voice, app.theme_colors.nick_voice_nick),
+                        s if s.contains('%') => (app.theme_colors.nick_halfop, app.theme_colors.nick_halfop_nick),
+                        s if s.contains('~') => (app.theme_colors.nick_founder, app.theme_colors.nick_founder_nick),
+                        s if s.contains('&') => (app.theme_colors.nick_admin, app.theme_colors.nick_admin_nick),
+                        _ => (app.theme_colors.nick_normal_prefix, app.theme_colors.nick_normal),
                     };
                     Line::from(vec![
                         Span::styled(&n.prefix, Style::default().fg(prefix_color)),
@@ -470,7 +470,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             let nicks_paragraph = Paragraph::new(nicks_text).block(
                 Block::default()
                     .borders(Borders::LEFT)
-                    .border_style(Style::default().fg(Color::DarkGray)),
+                    .border_style(Style::default().fg(app.theme_colors.border)),
             );
             f.render_widget(nicks_paragraph, chat_area[1]);
         }
@@ -524,19 +524,23 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
                 buf_spans.push(Span::styled(
                     label.clone(),
                     Style::default()
-                        .fg(app.theme_colors.status_bar_fg)
-                        .bg(Color::LightGreen)
+                        .fg(app.theme_colors.status_bar_active_fg)
+                        .bg(app.theme_colors.status_bar_active_bg)
                         .add_modifier(Modifier::BOLD),
                 ));
             } else if b.has_activity {
                 buf_spans.push(Span::styled(
                     label.clone(),
-                    Style::default().fg(Color::White).bg(Color::DarkGray),
+                    Style::default()
+                        .fg(app.theme_colors.status_bar_activity_fg)
+                        .bg(app.theme_colors.status_bar_activity_bg),
                 ));
             } else {
                 buf_spans.push(Span::styled(
                     label.clone(),
-                    Style::default().fg(app.theme_colors.status_bar_fg).bg(app.theme_colors.status_bar_bg),
+                    Style::default()
+                        .fg(app.theme_colors.status_bar_fg)
+                        .bg(app.theme_colors.status_bar_bg),
                 ));
             }
         }
@@ -551,7 +555,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
                 app.server().our_nick,
                 away_indicator,
             ),
-            Style::default().fg(Color::Black).bg(Color::Green),
+            Style::default().fg(app.theme_colors.status_bar_info_fg).bg(app.theme_colors.status_bar_bg),
         ));
 
         let status_bar = Paragraph::new(Line::from(buf_spans))
