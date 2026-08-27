@@ -145,6 +145,7 @@ impl CommandRegistry {
         self.register("STARTTLS", &[], "/starttls — Upgrade connection to TLS", cmd_starttls);
         self.register("RAWLOG", &[], "/rawlog [on|off|show|save] — Raw IRC protocol log", cmd_rawlog);
         self.register("CHATNET", &[], "/chatnet [add|del|list] <name> — IRC network config", cmd_chatnet);
+        self.register("CHARSET", &[], "/charset [charset] — Set/get character encoding for current buffer", cmd_charset);
 
         // ─── Dodatkowe epic5 / irc2.11 style ────────────
         self.register("WALLOPS", &[], "/wallops <text> — Send wallops", cmd_wallops);
@@ -1961,6 +1962,37 @@ fn cmd_caplist(app: &mut App, _args: &[&str]) -> CommandResult {
     CommandResult::Ok
 }
 
+fn cmd_charset(app: &mut App, args: &[&str]) -> CommandResult {
+    let buf = &app.buffers[app.current_buffer_idx];
+    let current = if buf.charset.is_empty() {
+        &app.server().default_charset
+    } else {
+        &buf.charset
+    };
+
+    if args.is_empty() {
+        app.system_message(&format!("-!- Current charset: {}", current));
+        app.system_message("-!- Available: UTF-8, ISO-8859-1, ISO-8859-2, ISO-8859-15, WINDOWS-1252, ASCII");
+        app.system_message("-!- Usage: /charset <encoding> | /charset default");
+        return CommandResult::Ok;
+    }
+
+    let charset = args[0].to_uppercase();
+    if charset == "DEFAULT" || charset == "RESET" {
+        app.buffers[app.current_buffer_idx].charset.clear();
+        app.system_message(&format!("-!- Charset reset to default ({})", app.server().default_charset));
+    } else {
+        let valid = crate::charset::common_charsets().iter().any(|c| c.eq_ignore_ascii_case(&charset));
+        if valid {
+            app.buffers[app.current_buffer_idx].charset = charset.clone();
+            app.system_message(&format!("-!- Charset set to: {}", charset));
+        } else {
+            app.system_message(&format!("-!- Unknown charset: {}. Use UTF-8, ISO-8859-1, etc.", charset));
+        }
+    }
+    CommandResult::Ok
+}
+
 fn cmd_chatnet(app: &mut App, args: &[&str]) -> CommandResult {
     if args.is_empty() || args[0] == "list" {
         if app.server().chatnets.is_empty() {
@@ -1994,6 +2026,7 @@ fn cmd_chatnet(app: &mut App, args: &[&str]) -> CommandResult {
                 default_tls: tls,
                 nickserv_pass: String::new(),
                 auto_join: Vec::new(),
+                charset: "UTF-8".into(),
             });
             app.system_message(&format!("-!- Chatnet added: {}", name));
         }

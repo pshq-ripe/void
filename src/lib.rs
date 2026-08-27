@@ -8,6 +8,7 @@ pub mod dcc;
 pub mod storage;
 pub mod motd;
 pub mod format;
+pub mod charset;
 
 pub mod app;
 pub use app::App;

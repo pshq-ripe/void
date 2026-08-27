@@ -18,6 +18,7 @@ pub struct Buffer {
     pub unread_count: usize,
     pub has_activity: bool,
     pub new_while_scrolled: usize,  // nowe wiadomości podczas scrollback
+    pub charset: String,            // charset for this buffer (empty = use default)
 }
 
 /// Wpis na liście nicków z prefixem trybu (@, +, %, ~, &)
@@ -91,6 +92,7 @@ impl Buffer {
             unread_count: 0,
             has_activity: false,
             new_while_scrolled: 0,
+            charset: String::new(),
         }
     }
 
@@ -217,15 +219,7 @@ pub struct ServerConnection {
     pub massjoin_timer: Option<Instant>, // when first join was buffered
     pub nickmatch_cache: HashMap<String, bool>, // pattern -> nick -> matched
     pub pending_redirects: Vec<ServerRedirect>, // pending command redirects
-}
-
-/// Redirect tracking — correlate responses to requests
-#[derive(Clone, Debug)]
-pub struct ServerRedirect {
-    pub command: String,      // WHO, MODE, WHOIS, etc.
-    pub target: String,       // channel or nick
-    pub request_id: String,   // unique identifier
-    pub callback: String,     // what to do with the response
+    pub default_charset: String,               // default charset (UTF-8)
 }
 
 /// Konfiguracja sieci IRC (chatnet)
@@ -237,6 +231,16 @@ pub struct ChatNet {
     pub default_tls: bool,
     pub nickserv_pass: String,
     pub auto_join: Vec<String>,
+    pub charset: String,                       // charset for this network
+}
+
+/// Redirect tracking — correlate responses to requests
+#[derive(Clone, Debug)]
+pub struct ServerRedirect {
+    pub command: String,      // WHO, MODE, WHOIS, etc.
+    pub target: String,       // channel or nick
+    pub request_id: String,   // unique identifier
+    pub callback: String,     // what to do with the response
 }
 
 /// Wpis na liście banów
@@ -290,6 +294,7 @@ impl ServerConnection {
             massjoin_timer: None,
             nickmatch_cache: HashMap::new(),
             pending_redirects: Vec::new(),
+            default_charset: "UTF-8".into(),
         }
     }
 }
