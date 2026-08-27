@@ -162,13 +162,13 @@ pub fn handle_key(app: &mut App, key: KeyEvent, registry: &CommandRegistry) -> b
 
     match key.code {
         KeyCode::Char(c) => {
-            app.input_text.push(c);
-            app.input_cursor_pos = app.input_text.len();
+            app.input_text.insert(app.input_cursor_pos, c);
+            app.input_cursor_pos += 1;
         }
         KeyCode::Backspace => {
-            if !app.input_text.is_empty() && app.input_cursor_pos > 0 {
-                app.input_text.pop();
-                app.input_cursor_pos = app.input_text.len();
+            if app.input_cursor_pos > 0 {
+                app.input_text.remove(app.input_cursor_pos - 1);
+                app.input_cursor_pos -= 1;
             }
         }
         KeyCode::Delete => {

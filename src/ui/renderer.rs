@@ -631,12 +631,21 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         f.render_widget(status_bar, main_chunks[2]);
 
         // ─── Input line ─────────────────────────────────
-        let prompt = app.settings.get("INPUT_PROMPT").to_string();
+        let buf_name = &app.buffers[app.current_buffer_idx].name;
+        let nick = &app.server().our_nick;
+        let prompt = if buf_name == "(Status)" {
+            format!("[{}]> ", nick)
+        } else if is_channel(buf_name) {
+            format!("[{}@{}]> ", buf_name, nick)
+        } else {
+            format!("[{}@{}]> ", buf_name, nick)
+        };
+        let prompt_len = prompt.len() as u16;
         let cursor_pos = app.input_cursor_pos;
 
         // Prompt w kolorze theme, tekst w kolorze input_fg
         let input_spans = vec![
-            Span::styled(&prompt, Style::default().fg(app.theme_colors.input_prompt_fg).add_modifier(Modifier::BOLD)),
+            Span::styled(prompt, Style::default().fg(app.theme_colors.input_prompt_fg).add_modifier(Modifier::BOLD)),
             Span::styled(&app.input_text, Style::default().fg(app.theme_colors.input_fg)),
         ];
         let mut input_block_widget = Block::default()
@@ -649,7 +658,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         f.render_widget(input_block, main_chunks[3]);
 
         // Pozycja kursora w linii wejścia
-        let cursor_x = main_chunks[3].x + prompt.len() as u16 + cursor_pos as u16;
+        let cursor_x = main_chunks[3].x + prompt_len + cursor_pos as u16;
         let cursor_y = main_chunks[3].y + 1; // +1 bo border TOP
         f.set_cursor_position((cursor_x, cursor_y));
     })?;

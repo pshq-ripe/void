@@ -35,7 +35,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                 Some('N') => {
                     flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
                     spans.push(Span::styled(
-                        app.server().our_nick.clone(),
+                        format!("{} ", app.server().our_nick),
                         Style::default().fg(app.theme_colors.nick_op_nick).bg(bg).add_modifier(Modifier::BOLD),
                     ));
                 }
