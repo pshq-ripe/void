@@ -215,6 +215,7 @@ pub struct ServerConnection {
     pub write_buffer: VecDeque<String>, // outgoing message buffer
     pub massjoin_buffer: Vec<(String, String, String)>, // (nick, channel, host) buffered joins
     pub massjoin_timer: Option<Instant>, // when first join was buffered
+    pub nickmatch_cache: HashMap<String, bool>, // pattern -> nick -> matched
 }
 
 /// Konfiguracja sieci IRC (chatnet)
@@ -277,6 +278,7 @@ impl ServerConnection {
             write_buffer: VecDeque::new(),
             massjoin_buffer: Vec::new(),
             massjoin_timer: None,
+            nickmatch_cache: HashMap::new(),
         }
     }
 }
@@ -885,6 +887,36 @@ impl App {
             }
         }
         result
+    }
+
+    /// Cached nick-pattern matching (irssi nickmatch-cache style)
+    pub fn nick_matches_pattern(&mut self, nick: &str, pattern: &str) -> bool {
+        let cache_key = format!("{}:{}", nick, pattern);
+        if let Some(&result) = self.server_mut().nickmatch_cache.get(&cache_key) {
+            return result;
+        }
+        let result = self.match_pattern(nick, pattern);
+        self.server_mut().nickmatch_cache.insert(cache_key, result);
+        // Limit cache size
+        if self.server_mut().nickmatch_cache.len() > 1000 {
+            self.server_mut().nickmatch_cache.clear();
+        }
+        result
+    }
+
+    fn match_pattern(&self, text: &str, pattern: &str) -> bool {
+        let text_lower = text.to_lowercase();
+        let pattern_lower = pattern.to_lowercase();
+        if pattern_lower.contains('*') {
+            let parts: Vec<&str> = pattern_lower.split('*').collect();
+            if parts.len() == 2 {
+                text_lower.starts_with(parts[0]) && text_lower.ends_with(parts[1])
+            } else {
+                text_lower.contains(&pattern_lower.replace('*', ""))
+            }
+        } else {
+            text_lower.contains(&pattern_lower)
+        }
     }
 
     /// Sprawdź czy komenda to alias i rozwiń. Zwraca Some(rozwinięty_tekst) lub None.
