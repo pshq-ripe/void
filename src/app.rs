@@ -216,6 +216,16 @@ pub struct ServerConnection {
     pub massjoin_buffer: Vec<(String, String, String)>, // (nick, channel, host) buffered joins
     pub massjoin_timer: Option<Instant>, // when first join was buffered
     pub nickmatch_cache: HashMap<String, bool>, // pattern -> nick -> matched
+    pub pending_redirects: Vec<ServerRedirect>, // pending command redirects
+}
+
+/// Redirect tracking — correlate responses to requests
+#[derive(Clone, Debug)]
+pub struct ServerRedirect {
+    pub command: String,      // WHO, MODE, WHOIS, etc.
+    pub target: String,       // channel or nick
+    pub request_id: String,   // unique identifier
+    pub callback: String,     // what to do with the response
 }
 
 /// Konfiguracja sieci IRC (chatnet)
@@ -279,6 +289,7 @@ impl ServerConnection {
             massjoin_buffer: Vec::new(),
             massjoin_timer: None,
             nickmatch_cache: HashMap::new(),
+            pending_redirects: Vec::new(),
         }
     }
 }
@@ -902,6 +913,28 @@ impl App {
             self.server_mut().nickmatch_cache.clear();
         }
         result
+    }
+
+    /// Dodaj redirect tracking dla komendy
+    pub fn track_redirect(&mut self, command: &str, target: &str, callback: &str) {
+        let request_id = format!("{}_{}", command, self.server_mut().pending_redirects.len());
+        self.server_mut().pending_redirects.push(ServerRedirect {
+            command: command.to_string(),
+            target: target.to_string(),
+            request_id,
+            callback: callback.to_string(),
+        });
+    }
+
+    /// Znajdź i usuń pasujący redirect
+    pub fn find_redirect(&mut self, command: &str, target: &str) -> Option<ServerRedirect> {
+        if let Some(pos) = self.server_mut().pending_redirects.iter().position(|r| {
+            r.command == command && r.target == target
+        }) {
+            Some(self.server_mut().pending_redirects.remove(pos))
+        } else {
+            None
+        }
     }
 
     fn match_pattern(&self, text: &str, pattern: &str) -> bool {

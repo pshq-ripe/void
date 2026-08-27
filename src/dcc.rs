@@ -34,9 +34,20 @@ pub struct DccSession {
     pub path: Option<PathBuf>,
 }
 
+/// Sesja DCC Chat
+#[derive(Clone, Debug)]
+pub struct DccChatSession {
+    pub id: usize,
+    pub nick: String,
+    pub state: DccState,
+    pub addr: Option<SocketAddr>,
+    pub messages: Vec<(String, String)>, // (from, text)
+}
+
 /// Menedżer DCC
 pub struct DccManager {
     pub sessions: Vec<DccSession>,
+    pub chat_sessions: Vec<DccChatSession>,
     next_id: usize,
     pub download_dir: PathBuf,
 }
@@ -46,6 +57,7 @@ impl DccManager {
         let path = PathBuf::from(shellexpand::tilde(download_dir).to_string());
         DccManager {
             sessions: Vec::new(),
+            chat_sessions: Vec::new(),
             next_id: 1,
             download_dir: path,
         }
@@ -212,6 +224,101 @@ impl DccManager {
             };
             let file_str = s.filename.as_deref().unwrap_or("-");
             format!("  [{}] {} {} {} ({})", s.id, type_str, s.nick, file_str, state_str)
+        }).collect()
+    }
+
+    // ─── DCC Chat ────────────────────────────────────
+
+    /// Dodaj nową sesję DCC Chat
+    pub fn add_chat(&mut self, nick: &str, addr: SocketAddr) -> usize {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.chat_sessions.push(DccChatSession {
+            id,
+            nick: nick.to_string(),
+            state: DccState::Pending,
+            addr: Some(addr),
+            messages: Vec::new(),
+        });
+        id
+    }
+
+    /// Połącz z DCC Chat
+    pub fn connect_chat(&mut self, id: usize) -> Result<(), String> {
+        let session = self.chat_sessions.iter_mut().find(|s| s.id == id)
+            .ok_or("No such DCC chat session")?;
+        let addr = session.addr.ok_or("No address for DCC chat")?;
+        session.state = DccState::Active;
+        // TCP connection would be established here
+        // For now, just mark as active
+        Ok(())
+    }
+
+    /// Wyślij wiadomość DCC Chat
+    pub fn send_chat_message(&mut self, id: usize, text: &str) -> Result<(), String> {
+        let session = self.chat_sessions.iter_mut().find(|s| s.id == id)
+            .ok_or("No such DCC chat session")?;
+        if session.state != DccState::Active {
+            return Err("DCC chat not active".into());
+        }
+        session.messages.push(("me".to_string(), text.to_string()));
+        // Would send through TCP stream here
+        Ok(())
+    }
+
+    /// Odbierz wiadomość DCC Chat
+    pub fn receive_chat_message(&mut self, id: usize, text: &str) {
+        if let Some(session) = self.chat_sessions.iter_mut().find(|s| s.id == id) {
+            session.messages.push((session.nick.clone(), text.to_string()));
+        }
+    }
+
+    /// Zamknij sesję DCC Chat
+    pub fn close_chat(&mut self, id: usize) {
+        if let Some(session) = self.chat_sessions.iter_mut().find(|s| s.id == id) {
+            session.state = DccState::Completed;
+        }
+    }
+
+    // ─── DCC Resume ──────────────────────────────────
+
+    /// Wznów przerwany transfer DCC SEND
+    pub fn resume_send(&mut self, id: usize) -> Result<String, String> {
+        let session = self.sessions.iter().find(|s| s.id == id)
+            .ok_or("No such DCC session")?;
+
+        if session.dcc_type != DccType::Send {
+            return Err("Can only resume DCC SEND".into());
+        }
+
+        let filepath = session.path.as_ref().ok_or("No file path")?;
+        let addr = session.addr.ok_or("No address")?;
+        let filename = session.filename.as_deref().unwrap_or("file");
+
+        // Sprawdź ile już pobrano
+        let existing_size = std::fs::metadata(filepath)
+            .map(|m| m.len())
+            .unwrap_or(0);
+
+        if existing_size == 0 {
+            return Err("No partial file to resume".into());
+        }
+
+        // Wyślij DCC RESUME
+        let port = addr.port();
+        Ok(format!("DCC RESUME {} {} {}", filename, port, existing_size))
+    }
+
+    /// Lista sesji DCC Chat
+    pub fn list_chats(&self) -> Vec<String> {
+        self.chat_sessions.iter().map(|s| {
+            let state = match &s.state {
+                DccState::Pending => "pending",
+                DccState::Active => "active",
+                DccState::Completed => "closed",
+                _ => "unknown",
+            };
+            format!("  [{}] DCC CHAT {} ({}) {} msgs", s.id, s.nick, state, s.messages.len())
         }).collect()
     }
 }

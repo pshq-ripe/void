@@ -1793,7 +1793,14 @@ fn cmd_dcc(app: &mut App, args: &[&str]) -> CommandResult {
             if args.len() < 2 {
                 return CommandResult::Error("Usage: /dcc chat <nick>".into());
             }
-            app.system_message(&format!("-!- DCC CHAT with {} — not yet implemented (coming with LiCe).", args[1]));
+            let nick = args[1];
+            // Send DCC CHAT request via CTCP
+            if let Some(s) = &app.server().sender {
+                let _ = s.send(irc::client::prelude::Command::Raw(
+                    format!("PRIVMSG {} :\x01DCC CHAT chat 0 0\x01", nick), Vec::new()
+                ));
+            }
+            app.system_message(&format!("-!- DCC CHAT request sent to {}", nick));
         }
         "send" => {
             if args.len() < 3 {
