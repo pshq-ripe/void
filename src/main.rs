@@ -501,6 +501,12 @@ async fn main() -> Result<()> {
                         if let Some(ch) = auto_join_channel.take() {
                             let _ = sender.send_join(&ch);
                         }
+                        // Restore session — dołącz do zapisanych kanałów
+                        let saved_channels = app.restore_session();
+                        for ch in saved_channels {
+                            app.system_message(&format!("-!- Restoring session: joining {}", ch));
+                            let _ = sender.send_join(&ch);
+                        }
                     }
                     IrcEvent::Disconnected => {
                         app.server_mut().connected = false;

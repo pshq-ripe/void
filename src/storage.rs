@@ -245,4 +245,44 @@ impl Storage {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
         }).unwrap().filter_map(|r| r.ok()).collect()
     }
+
+    // ─── Session save/restore ─────────────────────────
+
+    pub fn init_session_table(&self) -> SqlResult<()> {
+        self.conn.execute_batch("
+            CREATE TABLE IF NOT EXISTS session_buffers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                server_host TEXT NOT NULL,
+                channel TEXT,
+                auto_join INTEGER DEFAULT 0
+            );
+        ")?;
+        Ok(())
+    }
+
+    pub fn save_session_buffer(&self, name: &str, server_host: &str, channel: &str, auto_join: bool) -> SqlResult<()> {
+        self.conn.execute(
+            "INSERT OR REPLACE INTO session_buffers (name, server_host, channel, auto_join) VALUES (?1, ?2, ?3, ?4)",
+            params![name, server_host, channel, auto_join as i32],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_session_buffers(&self) -> Vec<(String, String, String, bool)> {
+        let mut stmt = self.conn.prepare("SELECT name, server_host, channel, auto_join FROM session_buffers ORDER BY id").unwrap();
+        stmt.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i32>(3)? != 0,
+            ))
+        }).unwrap().filter_map(|r| r.ok()).collect()
+    }
+
+    pub fn clear_session_buffers(&self) -> SqlResult<()> {
+        self.conn.execute("DELETE FROM session_buffers", [])?;
+        Ok(())
+    }
 }

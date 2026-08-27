@@ -1042,5 +1042,32 @@ impl App {
             if entry.ignore_ctcp { flags.push("CTCP"); }
             let _ = storage.add_ignore(&entry.pattern, &flags.join(","));
         }
+
+        // Zapisz sesję (bufory + serwery)
+        let _ = storage.init_session_table();
+        let _ = storage.clear_session_buffers();
+        for buf in &self.buffers {
+            let is_channel = buf.name.starts_with('#') || buf.name.starts_with('&');
+            let _ = storage.save_session_buffer(
+                &buf.name,
+                &self.server().host,
+                if is_channel { &buf.name } else { "" },
+                is_channel,
+            );
+        }
+    }
+
+    /// Przywróć sesję z SQLite — dołącz do zapisanych kanałów
+    pub fn restore_session(&self) -> Vec<String> {
+        let storage = match &self.storage {
+            Some(s) => s,
+            None => return Vec::new(),
+        };
+        let _ = storage.init_session_table();
+        storage.get_session_buffers()
+            .iter()
+            .filter(|(_, _, ch, auto)| *auto && !ch.is_empty())
+            .map(|(_, _, ch, _)| ch.clone())
+            .collect()
     }
 }
