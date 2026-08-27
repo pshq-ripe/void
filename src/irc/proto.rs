@@ -25,6 +25,16 @@ pub fn send_labeled_notice(app: &mut App, target: &str, text: &str) {
 pub fn handle_irc_message(app: &mut App, msg: &Message) {
     let source = msg.source_nickname().unwrap_or("").to_string();
 
+    // Raw log — zapisz surową wiadomość
+    if app.server().raw_log_enabled {
+        let raw = format!("{}", msg);
+        app.server_mut().raw_log.push(raw);
+        // Limit do 1000 wpisów
+        if app.server_mut().raw_log.len() > 1000 {
+            app.server_mut().raw_log.remove(0);
+        }
+    }
+
     // IRCv3 server-time: wyciągnij timestamp z message tags
     let _server_time = msg.tags.as_ref().and_then(|tags| {
         tags.iter()
@@ -316,6 +326,15 @@ pub fn handle_irc_message(app: &mut App, msg: &Message) {
         Command::PING(server, _) => {
             if let Some(s) = &app.server().sender {
                 let _ = s.send(Command::PONG(server.clone(), None));
+            }
+        }
+
+        // ─── PONG (lag measurement) ─────────────────────
+        Command::PONG(_server, _token) => {
+            if let Some(sent) = app.server().lag_ping_sent {
+                let lag = sent.elapsed().as_millis() as u64;
+                app.server_mut().lag_ms = lag;
+                app.server_mut().lag_ping_sent = None;
             }
         }
 

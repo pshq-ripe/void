@@ -198,6 +198,10 @@ pub struct ServerConnection {
     pub user_modes: String,
     pub server_info: ServerInfo,
     pub nick_password: Option<String>,
+    pub lag_ms: u64,                    // current lag in milliseconds
+    pub lag_ping_sent: Option<std::time::Instant>, // when ping was sent
+    pub raw_log: Vec<String>,          // raw IRC protocol log
+    pub raw_log_enabled: bool,
 }
 
 /// Parsowane tokeny ISUPPORT (005)
@@ -227,6 +231,10 @@ impl ServerConnection {
             user_modes: String::new(),
             server_info: ServerInfo::default(),
             nick_password: None,
+            lag_ms: 0,
+            lag_ping_sent: None,
+            raw_log: Vec::new(),
+            raw_log_enabled: false,
         }
     }
 }

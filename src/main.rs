@@ -222,6 +222,7 @@ async fn main() -> Result<()> {
     let mut timer_tick = tokio::time::interval(Duration::from_secs(1));
     let mut notify_tick = tokio::time::interval(Duration::from_secs(60));
     let mut save_tick = tokio::time::interval(Duration::from_secs(300)); // auto-save co 5 min
+    let mut lag_tick = tokio::time::interval(Duration::from_secs(30)); // lag ping co 30s
 
     while app.running {
         // Draw
@@ -395,6 +396,20 @@ async fn main() -> Result<()> {
             _ = save_tick.tick() => {
                 // Auto-save do SQLite co 5 minut
                 app.save_to_db();
+            }
+            _ = lag_tick.tick() => {
+                // Lag measurement — wyślij PING i zmierz czas odpowiedzi
+                if app.server().connected {
+                    let sender = app.server().sender.clone();
+                    if let Some(s) = sender {
+                        let now = std::time::Instant::now();
+                        app.server_mut().lag_ping_sent = Some(now);
+                        let ts = now.elapsed().as_millis().to_string();
+                        let _ = s.send(irc::client::prelude::Command::Raw(
+                            format!("PING :{}", ts), Vec::new()
+                        ));
+                    }
+                }
             }
             _ = notify_tick.tick() => {
                 // Cykliczny polling notify — MONITOR (IRCv3) lub ISON (fallback)

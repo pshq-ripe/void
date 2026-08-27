@@ -108,9 +108,13 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                 }
                 Some('L') => {
                     flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    let lag = app.server().lag_ms;
+                    let lag_color = if lag < 100 { Color::Green }
+                        else if lag < 300 { Color::Yellow }
+                        else { Color::Red };
                     spans.push(Span::styled(
-                        "0".to_string(),
-                        Style::default().fg(Color::DarkGray).bg(bg),
+                        format!("{}ms", lag),
+                        Style::default().fg(lag_color).bg(bg),
                     ));
                 }
                 Some('@') => {

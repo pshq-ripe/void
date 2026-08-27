@@ -143,6 +143,7 @@ impl CommandRegistry {
         self.register("CAPLIST", &[], "/caplist — List active IRCv3 capabilities", cmd_caplist);
         self.register("CHATHISTORY", &[], "/chathistory <before|after|latest|around> <target> <limit> — Request message history", cmd_chathistory);
         self.register("STARTTLS", &[], "/starttls — Upgrade connection to TLS", cmd_starttls);
+        self.register("RAWLOG", &[], "/rawlog [on|off|show|save] — Raw IRC protocol log", cmd_rawlog);
 
         // ─── Dodatkowe epic5 / irc2.11 style ────────────
         self.register("WALLOPS", &[], "/wallops <text> — Send wallops", cmd_wallops);
@@ -1885,6 +1886,48 @@ fn cmd_caplist(app: &mut App, _args: &[&str]) -> CommandResult {
         } else {
             app.system_message(&format!("  {}={}", key, value));
         }
+    }
+    CommandResult::Ok
+}
+
+fn cmd_rawlog(app: &mut App, args: &[&str]) -> CommandResult {
+    if args.is_empty() || args[0] == "show" {
+        let entries: Vec<String> = app.server().raw_log.iter()
+            .skip(app.server().raw_log.len().saturating_sub(50))
+            .cloned()
+            .collect();
+        if entries.is_empty() {
+            app.system_message("-!- Raw log is empty.");
+        } else {
+            app.system_message(&format!("-!- Raw log ({} entries):", entries.len()));
+            for entry in &entries {
+                app.system_message(&format!("  {}", entry));
+            }
+        }
+        return CommandResult::Ok;
+    }
+    match args[0].to_uppercase().as_str() {
+        "ON" => {
+            app.server_mut().raw_log_enabled = true;
+            app.system_message("-!- Raw log enabled.");
+        }
+        "OFF" => {
+            app.server_mut().raw_log_enabled = false;
+            app.system_message("-!- Raw log disabled.");
+        }
+        "SAVE" => {
+            let path = args.get(1).unwrap_or(&"rawlog.txt");
+            let content = app.server().raw_log.join("\n");
+            match std::fs::write(path, content) {
+                Ok(_) => { app.system_message(&format!("-!- Raw log saved to: {}", path)); }
+                Err(e) => { app.system_message(&format!("-!- Cannot save raw log: {}", e)); }
+            }
+        }
+        "CLEAR" => {
+            app.server_mut().raw_log.clear();
+            app.system_message("-!- Raw log cleared.");
+        }
+        _ => {}
     }
     CommandResult::Ok
 }
