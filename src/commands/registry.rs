@@ -1593,18 +1593,58 @@ fn cmd_pwd(app: &mut App, _args: &[&str]) -> CommandResult {
 fn cmd_debug(app: &mut App, args: &[&str]) -> CommandResult {
     if args.is_empty() {
         let status = if app.settings.get_bool("DEBUG") { "ON" } else { "OFF" };
-        app.system_message(&format!("-!- Debug mode: {}", status));
+        let raw_status = if app.server().raw_log_enabled { "ON" } else { "OFF" };
+        app.system_message(&format!("-!- Debug mode: {} | Raw log: {}", status, raw_status));
+        app.system_message("-!- Usage: /debug on|off|raw [on|off|show|save]");
     } else {
         match args[0].to_uppercase().as_str() {
             "ON" | "1" => {
                 app.settings.set("DEBUG", "ON");
-                app.system_message("-!- Debug mode enabled.");
+                app.server_mut().raw_log_enabled = true;
+                app.system_message("-!- Debug mode enabled. Raw log enabled.");
             }
             "OFF" | "0" => {
                 app.settings.set("DEBUG", "OFF");
+                app.server_mut().raw_log_enabled = false;
                 app.system_message("-!- Debug mode disabled.");
             }
-            _ => return CommandResult::Error("Usage: /debug [on|off]".into()),
+            "RAW" => {
+                let sub = args.get(1).unwrap_or(&"on").to_uppercase();
+                match sub.as_str() {
+                    "ON" => {
+                        app.server_mut().raw_log_enabled = true;
+                        app.system_message("-!- Raw log enabled.");
+                    }
+                    "OFF" => {
+                        app.server_mut().raw_log_enabled = false;
+                        app.system_message("-!- Raw log disabled.");
+                    }
+                    "SHOW" => {
+                        let entries: Vec<String> = app.server().raw_log.iter()
+                            .skip(app.server().raw_log.len().saturating_sub(50))
+                            .cloned()
+                            .collect();
+                        if entries.is_empty() {
+                            app.system_message("-!- Raw log is empty.");
+                        } else {
+                            app.system_message(&format!("-!- Raw log ({} entries):", entries.len()));
+                            for entry in &entries {
+                                app.system_message(&format!("  {}", entry));
+                            }
+                        }
+                    }
+                    "SAVE" => {
+                        let path = args.get(2).unwrap_or(&"rawlog.txt");
+                        let content = app.server().raw_log.join("\n");
+                        match std::fs::write(path, content) {
+                            Ok(_) => { app.system_message(&format!("-!- Raw log saved to: {}", path)); }
+                            Err(e) => { app.system_message(&format!("-!- Cannot save: {}", e)); }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            _ => return CommandResult::Error("Usage: /debug [on|off|raw [on|off|show|save]]".into()),
         }
     }
     CommandResult::Ok

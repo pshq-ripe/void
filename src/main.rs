@@ -156,8 +156,11 @@ async fn main() -> Result<()> {
     let (mouse_tx, mut mouse_rx) = mpsc::channel::<event::MouseEvent>(50);
     let (paste_tx, mut paste_rx) = mpsc::channel::<String>(20);
 
-    // Włącz mouse capture
-    execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)?;
+    // Mouse capture — tylko jeśli MOUSE ON w settings
+    let mouse_enabled = app.settings.get_bool("MOUSE");
+    if mouse_enabled {
+        execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)?;
+    }
 
     // ─── Terminal input task ─────────────────────────
     tokio::spawn(async move {
@@ -579,7 +582,9 @@ async fn main() -> Result<()> {
     app.save_to_db();
 
     // ─── Cleanup ─────────────────────────────────────
-    let _ = execute!(std::io::stdout(), crossterm::event::DisableMouseCapture);
+    if app.settings.get_bool("MOUSE") {
+        let _ = execute!(std::io::stdout(), crossterm::event::DisableMouseCapture);
+    }
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),

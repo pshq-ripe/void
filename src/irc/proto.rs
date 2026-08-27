@@ -2,23 +2,35 @@ use std::collections::HashMap;
 use crate::app::{App, MessageType, OutputContext};
 use irc::client::prelude::*;
 
-/// Wyślij PRIVMSG z labeled-response tagiem
+/// Wyślij PRIVMSG — z labeled-response tagiem jeśli serwer wspiera
 pub fn send_labeled_privmsg(app: &mut App, target: &str, text: &str) {
-    let label = app.next_label();
-    app.pending_labels.insert(label.clone(), format!("PRIVMSG {}", target));
-    if let Some(s) = &app.server().sender {
-        let msg = format!("@label={} PRIVMSG {} :{}", label, target, text);
-        let _ = s.send(Command::Raw(msg, Vec::new()));
+    let has_labeled = app.server().server_info.tokens.contains_key("LABELED-RESPONSE");
+    let sender = app.server().sender.clone();
+    if let Some(s) = sender {
+        if has_labeled {
+            let label = app.next_label();
+            app.pending_labels.insert(label.clone(), format!("PRIVMSG {}", target));
+            let msg = format!("@label={} PRIVMSG {} :{}", label, target, text);
+            let _ = s.send(Command::Raw(msg, Vec::new()));
+        } else {
+            let _ = s.send_privmsg(target, text);
+        }
     }
 }
 
-/// Wyślij NOTICE z labeled-response tagiem
+/// Wyślij NOTICE — z labeled-response tagiem jeśli serwer wspiera
 pub fn send_labeled_notice(app: &mut App, target: &str, text: &str) {
-    let label = app.next_label();
-    app.pending_labels.insert(label.clone(), format!("NOTICE {}", target));
-    if let Some(s) = &app.server().sender {
-        let msg = format!("@label={} NOTICE {} :{}", label, target, text);
-        let _ = s.send(Command::Raw(msg, Vec::new()));
+    let has_labeled = app.server().server_info.tokens.contains_key("LABELED-RESPONSE");
+    let sender = app.server().sender.clone();
+    if let Some(s) = sender {
+        if has_labeled {
+            let label = app.next_label();
+            app.pending_labels.insert(label.clone(), format!("NOTICE {}", target));
+            let msg = format!("@label={} NOTICE {} :{}", label, target, text);
+            let _ = s.send(Command::Raw(msg, Vec::new()));
+        } else {
+            let _ = s.send_notice(target, text);
+        }
     }
 }
 
