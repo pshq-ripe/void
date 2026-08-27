@@ -242,7 +242,15 @@ fn cmd_reconnect(app: &mut App, _args: &[&str]) -> CommandResult {
 
 fn cmd_quit(app: &mut App, args: &[&str]) -> CommandResult {
     let reason = if args.is_empty() {
-        "Leaving".to_string()
+        // Spróbuj pobrać losowy powód z Lua (get_quit_message)
+        let lua_ref = app.lua.clone();
+        if let Some(lua) = lua_ref {
+            if let Ok(func) = lua.globals().get::<mlua::Function>("get_quit_message") {
+                if let Ok(msg) = func.call::<String>(()) {
+                    if !msg.is_empty() { msg } else { "Leaving".into() }
+                } else { "Leaving".into() }
+            } else { "Leaving".into() }
+        } else { "Leaving".into() }
     } else {
         args.join(" ")
     };
@@ -283,7 +291,7 @@ fn cmd_part(app: &mut App, args: &[&str]) -> CommandResult {
     if channel == "(Status)" {
         return CommandResult::Error("Cannot part the status window.".into());
     }
-    let reason = if args.len() > 1 { args[1..].join(" ") } else { "Leaving".to_string() };
+    let reason = if args.len() > 1 { args[1..].join(" ") } else { "Leaving".into() };
     if let Some(s) = &app.server().sender {
         let _ = s.send(irc::client::prelude::Command::PART(channel.clone(), Some(reason)));
     }

@@ -3,7 +3,7 @@ math.randomseed(os.time())
 config = {
     nickname = "void_" .. tostring(math.random(100, 999)),
     server = "irc.spadhausen.com",
-    channels = {"#ghost-bots"}
+    channels = {}
 }
 
 -- LiCe5 compatibility layer (modules/)
