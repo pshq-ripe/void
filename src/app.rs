@@ -307,6 +307,8 @@ pub struct App {
     pub label_counter: u64,
     pub pending_labels: HashMap<String, String>, // label -> request description
     pub format_templates: HashMap<String, String>,
+    pub status_format: String,
+    pub event_formats: HashMap<String, String>,
     pub theme_colors: ThemeColors,
     pub split_buffer_idx: Option<usize>, // None = brak split, Some(idx) = drugi bufor
     pub split_scroll_offset: usize,      // niezależny scroll dla split pane
@@ -483,6 +485,26 @@ impl App {
                 m.insert("MSG".into(), "<$0> $1".into());
                 m.insert("ACTION".into(), "* $0 $1".into());
                 m.insert("NOTICE".into(), "-$0- $1".into());
+                m
+            },
+            status_format: "%T %N%# %@%C%+ %W %A %H%B %F %Q%M".into(),
+            event_formats: {
+                let mut m = HashMap::new();
+                m.insert("join".into(), "* $ch($1): $0 ($2)".into());
+                m.insert("part".into(), "* $ch($1): $0 ($2)".into());
+                m.insert("quit".into(), "* Signoff $0 ($1)".into());
+                m.insert("kick".into(), "* $ch($2): $0 by $1 ($3)".into());
+                m.insert("nick".into(), "* $0 is now known as $1".into());
+                m.insert("mode".into(), "* $ch($1): \"$2\" by $0".into());
+                m.insert("topic".into(), "* $ch($1): $0 changed topic to: $2".into());
+                m.insert("msg".into(), "[$0] $1".into());
+                m.insert("notice".into(), "-$0- $1".into());
+                m.insert("action".into(), "* $0 $1".into());
+                m.insert("public".into(), "<$0> $1".into());
+                m.insert("invite".into(), "* $0 invites you to $1".into());
+                m.insert("ctcp".into(), "* CTCP $1 from $0".into());
+                m.insert("nick_signon".into(), "* Signon detected: $0".into());
+                m.insert("nick_signoff".into(), "* Signoff detected: $0".into());
                 m
             },
             theme_colors: ThemeColors::default(),

@@ -551,55 +551,12 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             Style::default().fg(app.theme_colors.border).bg(app.theme_colors.status_bar_bg),
         ));
 
-        // Connection status
-        let conn_icon = if app.server().connected { "●" } else { "○" };
-        let conn_color = if app.server().connected { Color::LightGreen } else { Color::LightRed };
+        // Format engine — expand status format string
+        let status_text = crate::format::expand_status_format(app, &app.status_format);
         buf_spans.push(Span::styled(
-            format!(" {} ", conn_icon),
-            Style::default().fg(conn_color).bg(app.theme_colors.status_bar_bg),
-        ));
-
-        // Server name
-        buf_spans.push(Span::styled(
-            format!("{} ", app.server().host),
+            status_text,
             Style::default().fg(app.theme_colors.status_bar_info_fg).bg(app.theme_colors.status_bar_bg),
         ));
-
-        // Nick
-        buf_spans.push(Span::styled(
-            format!("{} ", app.server().our_nick),
-            Style::default().fg(app.theme_colors.status_bar_info_fg).bg(app.theme_colors.status_bar_bg).add_modifier(Modifier::BOLD),
-        ));
-
-        // Away indicator
-        if app.server().away_message.is_some() {
-            buf_spans.push(Span::styled(
-                "AWAY ",
-                Style::default().fg(Color::Yellow).bg(app.theme_colors.status_bar_bg).add_modifier(Modifier::BOLD),
-            ));
-        }
-
-        // User modes
-        if !app.server().user_modes.is_empty() {
-            buf_spans.push(Span::styled(
-                format!("+{} ", app.server().user_modes),
-                Style::default().fg(Color::DarkGray).bg(app.theme_colors.status_bar_bg),
-            ));
-        }
-
-        // Separator
-        buf_spans.push(Span::styled(
-            "│",
-            Style::default().fg(app.theme_colors.border).bg(app.theme_colors.status_bar_bg),
-        ));
-
-        // SASL status
-        if app.server().nick_password.is_some() {
-            buf_spans.push(Span::styled(
-                " SASL ",
-                Style::default().fg(Color::LightGreen).bg(app.theme_colors.status_bar_bg),
-            ));
-        }
 
         // Scroll indicator
         let scroll_offset = app.buffers[app.current_buffer_idx].scroll_offset;

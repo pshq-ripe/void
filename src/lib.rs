@@ -7,6 +7,7 @@ pub mod flood;
 pub mod dcc;
 pub mod storage;
 pub mod motd;
+pub mod format;
 
 pub mod app;
 pub use app::App;
