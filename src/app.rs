@@ -220,6 +220,7 @@ pub struct ServerConnection {
     pub nickmatch_cache: HashMap<String, bool>, // pattern -> nick -> matched
     pub pending_redirects: Vec<ServerRedirect>, // pending command redirects
     pub default_charset: String,               // default charset (UTF-8)
+    pub bouncer: Option<crate::bouncer::Bouncer>,
 }
 
 /// Konfiguracja sieci IRC (chatnet)
@@ -295,6 +296,7 @@ impl ServerConnection {
             nickmatch_cache: HashMap::new(),
             pending_redirects: Vec::new(),
             default_charset: "UTF-8".into(),
+            bouncer: None,
         }
     }
 }

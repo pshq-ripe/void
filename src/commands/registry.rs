@@ -146,6 +146,7 @@ impl CommandRegistry {
         self.register("RAWLOG", &[], "/rawlog [on|off|show|save] — Raw IRC protocol log", cmd_rawlog);
         self.register("CHATNET", &[], "/chatnet [add|del|list] <name> — IRC network config", cmd_chatnet);
         self.register("CHARSET", &[], "/charset [charset] — Set/get character encoding for current buffer", cmd_charset);
+        self.register("BOUNCER", &[], "/bouncer [start|stop|status] [port] [password] — IRC bouncer server", cmd_bouncer);
 
         // ─── Dodatkowe epic5 / irc2.11 style ────────────
         self.register("WALLOPS", &[], "/wallops <text> — Send wallops", cmd_wallops);
@@ -1957,6 +1958,58 @@ fn cmd_caplist(app: &mut App, _args: &[&str]) -> CommandResult {
             app.system_message(&format!("  {}", key));
         } else {
             app.system_message(&format!("  {}={}", key, value));
+        }
+    }
+    CommandResult::Ok
+}
+
+fn cmd_bouncer(app: &mut App, args: &[&str]) -> CommandResult {
+    if args.is_empty() || args[0] == "status" {
+        if let Some(ref b) = app.server().bouncer {
+            app.system_message(&format!("-!- {}", b.status()));
+        } else {
+            app.system_message("-!- Bouncer not running. Usage: /bouncer start <port> [password]");
+        }
+        return CommandResult::Ok;
+    }
+
+    match args[0].to_lowercase().as_str() {
+        "start" => {
+            let port = args.get(1).and_then(|s| s.parse::<u16>().ok()).unwrap_or(6667);
+            let password = args.get(2).unwrap_or(&"").to_string();
+            let mut bouncer = crate::bouncer::Bouncer::new(port, &password);
+            match bouncer.start() {
+                Ok(_) => {
+                    app.system_message(&format!("-!- Bouncer started on port {}", port));
+                    if !password.is_empty() {
+                        app.system_message("-!- Password protected. Connect with: /server localhost <port> <password>");
+                    } else {
+                        app.system_message("-!- No password. Connect with: /server localhost <port>");
+                    }
+                    app.server_mut().bouncer = Some(bouncer);
+                }
+                Err(e) => {
+                    app.system_message(&format!("-!- Bouncer error: {}", e));
+                }
+            }
+        }
+        "stop" => {
+            if let Some(ref mut b) = app.server_mut().bouncer {
+                b.stop();
+                app.system_message("-!- Bouncer stopped.");
+            } else {
+                app.system_message("-!- Bouncer not running.");
+            }
+        }
+        "status" => {
+            if let Some(ref b) = app.server().bouncer {
+                app.system_message(&format!("-!- {}", b.status()));
+            } else {
+                app.system_message("-!- Bouncer not running.");
+            }
+        }
+        _ => {
+            return CommandResult::Error("Usage: /bouncer [start|stop|status] [port] [password]".into());
         }
     }
     CommandResult::Ok
