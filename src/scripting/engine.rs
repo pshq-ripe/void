@@ -4,7 +4,7 @@ use mlua::{Lua, Result as LuaResult};
 pub fn init_lua() -> LuaResult<Lua> {
     let lua = Lua::new();
     lua.globals().set("client_name", "void")?;
-    lua.globals().set("client_version", "0.2.0")?;
+    lua.globals().set("client_version", "0.3.0")?;
     Ok(lua)
 }
 

@@ -2,7 +2,7 @@
 
 > A modern, Lua-scriptable IRC client written in Rust, inspired by **epic5** with **LiCe5** scripts and **epic6** features.
 
-**Version:** 0.2.0  
+**Version:** 0.3.0  
 **License:** MIT  
 **Repository:** https://github.com/pshq/void
 
@@ -743,7 +743,7 @@ void.echo("-!- System message style")
 Returns the client version string.
 
 ```lua
-local ver = void.version()  -- "void 0.2.0"
+local ver = void.version()  -- "void 0.3.0"
 void.echo("Running: " .. ver)
 ```
 
@@ -3393,4 +3393,4 @@ Available in aliases, format templates, and conditional expressions:
 
 ---
 
-*Documentation generated for Void IRC Client v0.2.0*
+*Documentation generated for Void IRC Client v0.3.0*
