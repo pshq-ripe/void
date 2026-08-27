@@ -50,6 +50,7 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
 
 /// SCRAM hash algorithm
 #[derive(Clone, Copy)]
+#[allow(dead_code)]
 enum ScramAlgo {
     Sha256,
     Sha512,
