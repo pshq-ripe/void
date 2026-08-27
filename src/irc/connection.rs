@@ -324,7 +324,7 @@ pub async fn spawn_connection(
                                                 format!("-!- Server capabilities: {}", caps)
                                             )).await;
                                             let _ = tx.send(IrcEvent::CapEvent("LS".into(), caps)).await;
-                                            let mut desired = "multi-prefix away-notify account-notify extended-join server-time echo-message".to_string();
+                                            let mut desired = "multi-prefix away-notify account-notify extended-join server-time echo-message labeled-response".to_string();
                                             if sasl.is_some() {
                                                 desired.push_str(" sasl");
                                                 // Request specific SASL mechanism

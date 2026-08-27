@@ -303,6 +303,8 @@ pub struct App {
     pub aliases: HashMap<String, String>,
     pub highlight_patterns: Vec<HighlightPattern>,
     pub key_bindings: HashMap<String, String>,
+    pub label_counter: u64,
+    pub pending_labels: HashMap<String, String>, // label -> request description
     pub format_templates: HashMap<String, String>,
     pub split_buffer_idx: Option<usize>, // None = brak split, Some(idx) = drugi bufor
     pub split_scroll_offset: usize,      // niezależny scroll dla split pane
@@ -374,6 +376,8 @@ impl App {
             aliases: HashMap::new(),
             highlight_patterns: Vec::new(),
             key_bindings: HashMap::new(),
+            label_counter: 0,
+            pending_labels: HashMap::new(),
             format_templates: {
                 let mut m = HashMap::new();
                 m.insert("JOIN".into(), "* $0 has joined $1".into());
@@ -722,6 +726,12 @@ impl App {
         self.aliases.get(&upper).map(|template| {
             self.expand_variables(template, args)
         })
+    }
+
+    /// Generuj unikalny label dla labeled-response
+    pub fn next_label(&mut self) -> String {
+        self.label_counter += 1;
+        format!("v{}", self.label_counter)
     }
 
     /// Rozwiń szablon formatu wiadomości (np. "JOIN" → "* $0 has joined $1")

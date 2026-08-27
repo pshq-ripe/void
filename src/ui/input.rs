@@ -269,9 +269,7 @@ pub fn handle_key(app: &mut App, key: KeyEvent, registry: &CommandRegistry) -> b
                         let max_len = 490;
                         let parts = break_message(&text, max_len);
                         for part in &parts {
-                            if let Some(s) = &app.server().sender {
-                                let _ = s.send_privmsg(&buf_name, part);
-                            }
+                            crate::irc::proto::send_labeled_privmsg(app, &buf_name, part);
                         }
                         if parts.len() == 1 {
                             app.buffer_message(

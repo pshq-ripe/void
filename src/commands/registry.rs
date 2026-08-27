@@ -440,9 +440,7 @@ fn cmd_msg(app: &mut App, args: &[&str]) -> CommandResult {
     }
     let target = args[0];
     let text = args[1..].join(" ");
-    if let Some(s) = &app.server().sender {
-        let _ = s.send_privmsg(target, &text);
-    }
+    crate::irc::proto::send_labeled_privmsg(app, target, &text);
     app.last_msg_target = Some(target.to_string());
     let buf_name = target.to_string();
     app.buffer_message(&buf_name, format!("<{}> {}", app.server().our_nick, text), MessageType::Normal);
@@ -488,9 +486,7 @@ fn cmd_say(app: &mut App, args: &[&str]) -> CommandResult {
         return CommandResult::Error("Not in a channel.".into());
     }
     let text = args.join(" ");
-    if let Some(s) = &app.server().sender {
-        let _ = s.send_privmsg(&channel, &text);
-    }
+    crate::irc::proto::send_labeled_privmsg(app, &channel, &text);
     let nick = app.server().our_nick.clone();
     app.buffer_message(&channel, format!("<{}> {}", nick, text), MessageType::Normal);
     CommandResult::Ok

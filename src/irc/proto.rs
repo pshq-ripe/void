@@ -1,6 +1,26 @@
 use crate::app::{App, MessageType, OutputContext};
 use irc::client::prelude::*;
 
+/// Wyślij PRIVMSG z labeled-response tagiem
+pub fn send_labeled_privmsg(app: &mut App, target: &str, text: &str) {
+    let label = app.next_label();
+    app.pending_labels.insert(label.clone(), format!("PRIVMSG {}", target));
+    if let Some(s) = &app.server().sender {
+        let msg = format!("@label={} PRIVMSG {} :{}", label, target, text);
+        let _ = s.send(Command::Raw(msg, Vec::new()));
+    }
+}
+
+/// Wyślij NOTICE z labeled-response tagiem
+pub fn send_labeled_notice(app: &mut App, target: &str, text: &str) {
+    let label = app.next_label();
+    app.pending_labels.insert(label.clone(), format!("NOTICE {}", target));
+    if let Some(s) = &app.server().sender {
+        let msg = format!("@label={} NOTICE {} :{}", label, target, text);
+        let _ = s.send(Command::Raw(msg, Vec::new()));
+    }
+}
+
 /// Przetwarzanie wiadomości IRC i aktualizacja stanu App
 pub fn handle_irc_message(app: &mut App, msg: &Message) {
     let source = msg.source_nickname().unwrap_or("").to_string();
@@ -11,7 +31,19 @@ pub fn handle_irc_message(app: &mut App, msg: &Message) {
             .find(|t| t.0 == "time")
             .and_then(|t| t.1.as_deref())
     });
-    // TODO: użyj _server_time do nadpisania timestampu wiadomości
+
+    // IRCv3 labeled-response: wyciągnij label z message tags
+    let label = msg.tags.as_ref().and_then(|tags| {
+        tags.iter()
+            .find(|t| t.0 == "label")
+            .and_then(|t| t.1.as_deref())
+    });
+    if let Some(lbl) = label {
+        // Sprawdź czy to odpowiedź na nasz request
+        if let Some(desc) = app.pending_labels.remove(lbl) {
+            app.system_message(&format!("-!- [label:{}] Response to: {}", lbl, desc));
+        }
+    }
 
     // Ustaw kontekst wyjścia (epic6 /ON CONTEXT)
     let target = match &msg.command {
