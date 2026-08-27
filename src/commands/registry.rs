@@ -717,19 +717,34 @@ fn cmd_window(app: &mut App, args: &[&str]) -> CommandResult {
             }
         }
         "split" => {
-            if let Some(name) = args.get(1) {
-                // Split z nazwanym buforem
+            // Parse direction: /window split [h|v] [name]
+            let mut direction = "v"; // domyślnie vertical
+            let mut name_arg = None;
+            if let Some(first) = args.get(1) {
+                if *first == "h" || *first == "horizontal" {
+                    direction = "h";
+                    name_arg = args.get(2);
+                } else if *first == "v" || *first == "vertical" {
+                    direction = "v";
+                    name_arg = args.get(2);
+                } else {
+                    name_arg = Some(first);
+                }
+            }
+            app.split_horizontal = direction == "h";
+            let dir_label = if app.split_horizontal { "horizontal" } else { "vertical" };
+
+            if let Some(name) = name_arg {
                 if let Some(idx) = app.buffers.iter().position(|b| b.name == *name) {
                     app.split_buffer_idx = Some(idx);
-                    app.system_message(&format!("-!- Split screen: {} | {}", app.buffers[app.current_buffer_idx].name, name));
+                    app.system_message(&format!("-!- Split ({}) {} | {}", dir_label, app.buffers[app.current_buffer_idx].name, name));
                 } else {
                     app.system_message(&format!("-!- No buffer: {}", name));
                 }
             } else {
-                // Split z następnym buforem
                 let next = (app.current_buffer_idx + 1) % app.buffers.len();
                 app.split_buffer_idx = Some(next);
-                app.system_message(&format!("-!- Split screen: {} | {}",
+                app.system_message(&format!("-!- Split ({}) {} | {}", dir_label,
                     app.buffers[app.current_buffer_idx].name, app.buffers[next].name));
             }
         }

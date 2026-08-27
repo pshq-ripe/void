@@ -384,8 +384,13 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
 
         // ─── Split screen: podziel chat na dwa buforów ────
         let split_areas = if let Some(split_idx) = app.split_buffer_idx {
+            let direction = if app.split_horizontal {
+                Direction::Horizontal
+            } else {
+                Direction::Vertical
+            };
             let areas = Layout::default()
-                .direction(Direction::Vertical)
+                .direction(direction)
                 .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
                 .split(main_chunks[1]);
             Some((areas, split_idx))
@@ -424,12 +429,17 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
                 let split_buf = &app.buffers[split_idx];
                 let split_area = areas[1];
                 // Separator
+                let sep_direction = if app.split_horizontal {
+                    Direction::Horizontal
+                } else {
+                    Direction::Vertical
+                };
                 let separator = Paragraph::new(Span::styled(
-                    format!(" ── {} ── ", split_buf.name),
+                    format!(" {} ", split_buf.name),
                     Style::default().fg(Color::DarkGray).bg(Color::Black),
                 ));
                 let sep_chunks = Layout::default()
-                    .direction(Direction::Vertical)
+                    .direction(sep_direction)
                     .constraints([Constraint::Length(1), Constraint::Min(1)])
                     .split(split_area);
                 f.render_widget(separator, sep_chunks[0]);

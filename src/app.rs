@@ -308,6 +308,7 @@ pub struct App {
     pub format_templates: HashMap<String, String>,
     pub split_buffer_idx: Option<usize>, // None = brak split, Some(idx) = drugi bufor
     pub split_scroll_offset: usize,      // niezależny scroll dla split pane
+    pub split_horizontal: bool,          // false=vertical(top/bottom), true=horizontal(left/right)
     pub suppress_display: bool,          // /SHH — wycisz wyświetlanie w aktualnym kontekście
     pub output_context: OutputContext,    // aktualny kontekst wyjścia
     pub storage: Option<Storage>,
@@ -394,6 +395,7 @@ impl App {
             },
             split_buffer_idx: None,
             split_scroll_offset: 0,
+            split_horizontal: false,
             suppress_display: false,
             output_context: OutputContext::default(),
             storage: Storage::open("~/.void/void.db", db_pass).ok(),
