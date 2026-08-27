@@ -332,6 +332,9 @@ impl Settings {
         map.insert("SSL_VERIFY".into(), "OFF".into());
         map.insert("DEBUG".into(), "OFF".into());
         map.insert("MOUSE".into(), "OFF".into());
+        map.insert("SHOW_NICKLIST".into(), "ON".into());
+        map.insert("SHOW_STATUSBAR".into(), "ON".into());
+        map.insert("SHOW_USER_COUNT".into(), "ON".into());
         map.insert("NICK_WIDTH".into(), "18".into());
         Settings { map }
     }

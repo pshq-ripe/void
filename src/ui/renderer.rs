@@ -364,16 +364,19 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
     terminal.draw(|f| {
         let area = f.area();
         let buf = app.current_buffer();
-        let show_nicks = is_channel(&buf.name);
+        let show_nicks = is_channel(&buf.name) && app.settings.get_bool("SHOW_NICKLIST");
+        let show_statusbar = app.settings.get_bool("SHOW_STATUSBAR");
+        let show_user_count = app.settings.get_bool("SHOW_USER_COUNT");
 
         // Główny podział pionowy: [Topic] | [Chat(+Nicks)] | [StatusBar] | [Input]
+        let statusbar_height = if show_statusbar { 1 } else { 0 };
         let main_chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(0)
             .constraints([
                 Constraint::Length(1),  // Topic bar
                 Constraint::Min(5),    // Chat + Nicks
-                Constraint::Length(1), // Status bar
+                Constraint::Length(statusbar_height), // Status bar
                 Constraint::Length(3), // Input
             ])
             .split(area);
@@ -477,8 +480,13 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
 
             // Ops
             if !ops.is_empty() {
+                let ops_label = if show_user_count {
+                    format!(" Ops ({})", ops.len())
+                } else {
+                    " Ops".to_string()
+                };
                 nicks_text.push(Line::from(Span::styled(
-                    format!(" Ops ({})", ops.len()),
+                    ops_label,
                     Style::default().fg(app.theme_colors.nick_list_header).add_modifier(Modifier::ITALIC),
                 )));
                 for n in &ops {
@@ -496,8 +504,13 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
 
             // Voices
             if !voices.is_empty() {
+                let voices_label = if show_user_count {
+                    format!(" Voices ({})", voices.len())
+                } else {
+                    " Voices".to_string()
+                };
                 nicks_text.push(Line::from(Span::styled(
-                    format!(" Voices ({})", voices.len()),
+                    voices_label,
                     Style::default().fg(app.theme_colors.nick_list_header).add_modifier(Modifier::ITALIC),
                 )));
                 for n in &voices {
@@ -515,8 +528,13 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
 
             // Regular nicks
             if !regulars.is_empty() {
+                let users_label = if show_user_count {
+                    format!(" Users ({})", regulars.len())
+                } else {
+                    " Users".to_string()
+                };
                 nicks_text.push(Line::from(Span::styled(
-                    format!(" Users ({})", regulars.len()),
+                    users_label,
                     Style::default().fg(app.theme_colors.nick_list_header).add_modifier(Modifier::ITALIC),
                 )));
                 for n in &regulars {
