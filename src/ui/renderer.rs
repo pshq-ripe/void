@@ -226,7 +226,7 @@ fn find_url_positions(text: &str) -> Vec<(usize, usize)> {
 }
 
 /// Renderuj chat buffer w danym area
-fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate::app::Buffer, settings: &crate::app::Settings, scroll_override: Option<usize>) {
+fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate::app::Buffer, settings: &crate::app::Settings, scroll_override: Option<usize>, theme: &crate::app::ThemeColors) {
     let show_indicator = buf.new_while_scrolled > 0 && scroll_override.unwrap_or(buf.scroll_offset) > 0;
     let chat_height = area.height as usize;
     let total_msgs = buf.messages.len();
@@ -237,14 +237,14 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
         .iter()
         .map(|m| {
             let color = match m.msg_type {
-                MessageType::Normal => Color::Green,
-                MessageType::Action => Color::Yellow,
-                MessageType::System => Color::Cyan,
-                MessageType::Notice => Color::Magenta,
-                MessageType::Ctcp => Color::Red,
-                MessageType::ServerReply => Color::DarkGray,
-                MessageType::Error => Color::LightRed,
-                MessageType::Highlight => Color::White,
+                MessageType::Normal => theme.msg_normal,
+                MessageType::Action => theme.msg_action,
+                MessageType::System => theme.msg_system,
+                MessageType::Notice => theme.msg_notice,
+                MessageType::Ctcp => theme.msg_ctcp,
+                MessageType::ServerReply => theme.msg_server,
+                MessageType::Error => theme.msg_error,
+                MessageType::Highlight => theme.msg_highlight,
             };
 
             let msg_spans = if (m.msg_type == MessageType::Normal || m.msg_type == MessageType::Highlight)
@@ -377,9 +377,9 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         };
         let topic_bar = Paragraph::new(Span::styled(
             topic_text,
-            Style::default().fg(Color::Black).bg(Color::Green),
+            Style::default().fg(app.theme_colors.topic_bar_fg).bg(app.theme_colors.topic_bar_bg),
         ))
-        .style(Style::default().bg(Color::Green));
+        .style(Style::default().bg(app.theme_colors.topic_bar_bg));
         f.render_widget(topic_bar, main_chunks[0]);
 
         // ─── Split screen: podziel chat na dwa buforów ────
@@ -421,7 +421,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         };
 
         // ─── Chat window (primary buffer) ────────────────
-        render_chat(f, chat_area[0], buf, &app.settings, None);
+        render_chat(f, chat_area[0], buf, &app.settings, None, &app.theme_colors);
 
         // ─── Split screen: drugi bufor ───────────────────
         if let Some((ref areas, split_idx)) = split_areas {
@@ -443,7 +443,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
                     .constraints([Constraint::Length(1), Constraint::Min(1)])
                     .split(split_area);
                 f.render_widget(separator, sep_chunks[0]);
-                render_chat(f, sep_chunks[1], split_buf, &app.settings, Some(app.split_scroll_offset));
+                render_chat(f, sep_chunks[1], split_buf, &app.settings, Some(app.split_scroll_offset), &app.theme_colors);
             }
         }
 
@@ -454,12 +454,12 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
                 .iter()
                 .map(|n| {
                     let (prefix_color, nick_color) = match n.prefix.as_str() {
-                        s if s.contains('@') => (Color::Red, Color::LightGreen),
-                        s if s.contains('+') => (Color::Yellow, Color::Green),
-                        s if s.contains('%') => (Color::Cyan, Color::Green),
-                        s if s.contains('~') => (Color::Magenta, Color::LightGreen),
-                        s if s.contains('&') => (Color::Red, Color::LightGreen),
-                        _ => (Color::DarkGray, Color::Green),
+                        s if s.contains('@') => (app.theme_colors.nick_op, Color::LightGreen),
+                        s if s.contains('+') => (app.theme_colors.nick_voice, app.theme_colors.nick_normal),
+                        s if s.contains('%') => (app.theme_colors.nick_halfop, app.theme_colors.nick_normal),
+                        s if s.contains('~') => (app.theme_colors.nick_founder, Color::LightGreen),
+                        s if s.contains('&') => (app.theme_colors.nick_admin, Color::LightGreen),
+                        _ => (Color::DarkGray, app.theme_colors.nick_normal),
                     };
                     Line::from(vec![
                         Span::styled(&n.prefix, Style::default().fg(prefix_color)),
@@ -524,7 +524,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
                 buf_spans.push(Span::styled(
                     label.clone(),
                     Style::default()
-                        .fg(Color::Black)
+                        .fg(app.theme_colors.status_bar_fg)
                         .bg(Color::LightGreen)
                         .add_modifier(Modifier::BOLD),
                 ));
@@ -536,7 +536,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             } else {
                 buf_spans.push(Span::styled(
                     label.clone(),
-                    Style::default().fg(Color::Black).bg(Color::Green),
+                    Style::default().fg(app.theme_colors.status_bar_fg).bg(app.theme_colors.status_bar_bg),
                 ));
             }
         }
@@ -564,7 +564,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         let display_input = format!("{}{}", prompt, app.input_text);
         let input_block = Paragraph::new(Span::styled(
             &display_input,
-            Style::default().fg(Color::LightGreen),
+            Style::default().fg(app.theme_colors.input_fg),
         ))
         .block(
             Block::default()

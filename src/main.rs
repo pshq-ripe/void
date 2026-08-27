@@ -295,6 +295,10 @@ async fn main() -> Result<()> {
                     if let Some((key, value)) = rest.split_once(' ') {
                         app.settings.set(key, value);
                     }
+                } else if cmd_text.starts_with("THEME_APPLY ") {
+                    let theme_name = &cmd_text[12..];
+                    app.apply_theme(theme_name);
+                    app.system_message(&format!("-!- Theme applied: {}", theme_name));
                 }
             }
             Some(mouse) = mouse_rx.recv() => {

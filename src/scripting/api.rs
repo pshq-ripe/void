@@ -919,6 +919,19 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
         void_table.set("exec", exec_fn)?;
     }
 
+    // ─── void.apply_theme(name) — zastosuj theme ─────
+    {
+        let ctx = ctx.clone();
+        let apply_fn = lua.create_function(move |_, name: String| {
+            let ctx = ctx.lock().unwrap();
+            let _ = ctx.cmd_tx.try_send(LuaCommand {
+                raw: format!("THEME_APPLY {}", name),
+            });
+            Ok(())
+        })?;
+        void_table.set("apply_theme", apply_fn)?;
+    }
+
     lua.globals().set("void", void_table)?;
     Ok(())
 }

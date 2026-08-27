@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
+use ratatui::style::Color;
 use crate::logging::Logger;
 use crate::flood::FloodProtection;
 use crate::dcc::DccManager;
@@ -306,6 +307,7 @@ pub struct App {
     pub label_counter: u64,
     pub pending_labels: HashMap<String, String>, // label -> request description
     pub format_templates: HashMap<String, String>,
+    pub theme_colors: ThemeColors,
     pub split_buffer_idx: Option<usize>, // None = brak split, Some(idx) = drugi bufor
     pub split_scroll_offset: usize,      // niezależny scroll dla split pane
     pub split_horizontal: bool,          // false=vertical(top/bottom), true=horizontal(left/right)
@@ -325,6 +327,62 @@ pub struct App {
 pub struct HighlightPattern {
     pub pattern: String,
     pub color: String,
+}
+
+/// Kolory theme'a — używane przez renderer
+#[derive(Clone)]
+pub struct ThemeColors {
+    pub name: String,
+    pub status_bar_bg: Color,
+    pub status_bar_fg: Color,
+    pub topic_bar_bg: Color,
+    pub topic_bar_fg: Color,
+    pub input_fg: Color,
+    pub border: Color,
+    pub timestamp: Color,
+    pub msg_normal: Color,
+    pub msg_action: Color,
+    pub msg_system: Color,
+    pub msg_notice: Color,
+    pub msg_highlight: Color,
+    pub msg_error: Color,
+    pub msg_server: Color,
+    pub msg_ctcp: Color,
+    pub nick_op: Color,
+    pub nick_voice: Color,
+    pub nick_halfop: Color,
+    pub nick_founder: Color,
+    pub nick_admin: Color,
+    pub nick_normal: Color,
+}
+
+impl Default for ThemeColors {
+    fn default() -> Self {
+        ThemeColors {
+            name: "Default".into(),
+            status_bar_bg: Color::Green,
+            status_bar_fg: Color::Black,
+            topic_bar_bg: Color::Green,
+            topic_bar_fg: Color::Black,
+            input_fg: Color::LightGreen,
+            border: Color::DarkGray,
+            timestamp: Color::DarkGray,
+            msg_normal: Color::Green,
+            msg_action: Color::Yellow,
+            msg_system: Color::Cyan,
+            msg_notice: Color::Magenta,
+            msg_highlight: Color::White,
+            msg_error: Color::LightRed,
+            msg_server: Color::DarkGray,
+            msg_ctcp: Color::Red,
+            nick_op: Color::Red,
+            nick_voice: Color::Yellow,
+            nick_halfop: Color::Cyan,
+            nick_founder: Color::Magenta,
+            nick_admin: Color::Red,
+            nick_normal: Color::Green,
+        }
+    }
 }
 
 /// Kontekst wyjścia (epic6 /ON CONTEXT)
@@ -393,6 +451,7 @@ impl App {
                 m.insert("NOTICE".into(), "-$0- $1".into());
                 m
             },
+            theme_colors: ThemeColors::default(),
             split_buffer_idx: None,
             split_scroll_offset: 0,
             split_horizontal: false,
@@ -734,6 +793,70 @@ impl App {
     pub fn next_label(&mut self) -> String {
         self.label_counter += 1;
         format!("v{}", self.label_counter)
+    }
+
+    /// Zastosuj theme z Lua
+    pub fn apply_theme(&mut self, theme_name: &str) {
+        // Mapuj nazwy kolorów na ratatui Color
+        let parse_color = |s: &str| -> Color {
+            match s.to_lowercase().as_str() {
+                "black" => Color::Black,
+                "red" => Color::Red,
+                "green" => Color::Green,
+                "yellow" => Color::Yellow,
+                "blue" => Color::Blue,
+                "magenta" | "purple" => Color::Magenta,
+                "cyan" => Color::Cyan,
+                "white" => Color::White,
+                "dark_gray" | "darkgray" | "gray" => Color::DarkGray,
+                "light_red" | "lightred" => Color::LightRed,
+                "light_green" | "lightgreen" => Color::LightGreen,
+                "light_yellow" | "lightyellow" => Color::LightYellow,
+                "light_blue" | "lightblue" => Color::LightBlue,
+                "light_magenta" | "lightmagenta" => Color::LightMagenta,
+                "light_cyan" | "lightcyan" => Color::LightCyan,
+                _ => Color::White,
+            }
+        };
+
+        // Czytaj theme z Lua global table
+        if let Some(ref lua) = self.lua {
+            if let Ok(themes_table) = lua.globals().get::<mlua::Table>("void_themes") {
+                if let Ok(theme_table) = themes_table.get::<mlua::Table>(theme_name.to_lowercase()) {
+                    // Czytaj ui colors
+                    if let Ok(ui) = theme_table.get::<mlua::Table>("ui") {
+                        if let Ok(v) = ui.get::<String>("status_bar_bg") { self.theme_colors.status_bar_bg = parse_color(&v); }
+                        if let Ok(v) = ui.get::<String>("status_bar_fg") { self.theme_colors.status_bar_fg = parse_color(&v); }
+                        if let Ok(v) = ui.get::<String>("topic_bar_bg") { self.theme_colors.topic_bar_bg = parse_color(&v); }
+                        if let Ok(v) = ui.get::<String>("topic_bar_fg") { self.theme_colors.topic_bar_fg = parse_color(&v); }
+                        if let Ok(v) = ui.get::<String>("input_fg") { self.theme_colors.input_fg = parse_color(&v); }
+                        if let Ok(v) = ui.get::<String>("border") { self.theme_colors.border = parse_color(&v); }
+                        if let Ok(v) = ui.get::<String>("timestamp") { self.theme_colors.timestamp = parse_color(&v); }
+                    }
+                    // Czytaj message colors
+                    if let Ok(msgs) = theme_table.get::<mlua::Table>("messages") {
+                        if let Ok(v) = msgs.get::<String>("normal") { self.theme_colors.msg_normal = parse_color(&v); }
+                        if let Ok(v) = msgs.get::<String>("action") { self.theme_colors.msg_action = parse_color(&v); }
+                        if let Ok(v) = msgs.get::<String>("system") { self.theme_colors.msg_system = parse_color(&v); }
+                        if let Ok(v) = msgs.get::<String>("notice") { self.theme_colors.msg_notice = parse_color(&v); }
+                        if let Ok(v) = msgs.get::<String>("highlight") { self.theme_colors.msg_highlight = parse_color(&v); }
+                        if let Ok(v) = msgs.get::<String>("error") { self.theme_colors.msg_error = parse_color(&v); }
+                        if let Ok(v) = msgs.get::<String>("server") { self.theme_colors.msg_server = parse_color(&v); }
+                        if let Ok(v) = msgs.get::<String>("ctcp") { self.theme_colors.msg_ctcp = parse_color(&v); }
+                    }
+                    // Czytaj nick colors
+                    if let Ok(nicks) = theme_table.get::<mlua::Table>("nicks") {
+                        if let Ok(v) = nicks.get::<String>("op") { self.theme_colors.nick_op = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<String>("voice") { self.theme_colors.nick_voice = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<String>("halfop") { self.theme_colors.nick_halfop = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<String>("founder") { self.theme_colors.nick_founder = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<String>("admin") { self.theme_colors.nick_admin = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<String>("normal") { self.theme_colors.nick_normal = parse_color(&v); }
+                    }
+                    self.theme_colors.name = theme_name.to_string();
+                }
+            }
+        }
     }
 
     /// Rozwiń szablon formatu wiadomości (np. "JOIN" → "* $0 has joined $1")

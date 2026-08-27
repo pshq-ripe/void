@@ -22,8 +22,8 @@ function void_themes.apply(name)
         void.echo("-!- Theme not found: " .. name)
         return false
     end
-    void.echo("-!- Theme applied: " .. theme.name)
-    -- Store current theme name
+    -- Apply theme to Rust renderer
+    void.apply_theme(name:lower())
     void_themes.current = name:lower()
     return true
 end
