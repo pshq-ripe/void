@@ -835,20 +835,79 @@ fn cmd_clear(app: &mut App, _args: &[&str]) -> CommandResult {
 }
 
 fn cmd_lastlog(app: &mut App, args: &[&str]) -> CommandResult {
-    let pattern = if args.is_empty() { "" } else { args[0] };
-    let buf = app.current_buffer();
+    // /lastlog [-level <level>] [-window <name>] <pattern>
+    let mut pattern = "";
+    let mut level_filter = "";
+    let mut window_filter = "";
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].to_lowercase().as_str() {
+            "-level" | "-l" => {
+                if let Some(l) = args.get(i + 1) { level_filter = l; i += 2; continue; }
+            }
+            "-window" | "-w" => {
+                if let Some(w) = args.get(i + 1) { window_filter = w; i += 2; continue; }
+            }
+            _ => { pattern = args[i]; }
+        }
+        i += 1;
+    }
+
+    // Determine which buffer to search
+    let buf = if !window_filter.is_empty() {
+        match app.buffers.iter().find(|b| b.name.to_lowercase() == window_filter.to_lowercase()) {
+            Some(b) => b,
+            None => {
+                app.system_message(&format!("-!- No buffer: {}", window_filter));
+                return CommandResult::Ok;
+            }
+        }
+    } else {
+        app.current_buffer()
+    };
+
     let mut matches: Vec<String> = Vec::new();
     for msg in &buf.messages {
-        if pattern.is_empty() || msg.text.to_lowercase().contains(&pattern.to_lowercase()) {
+        // Level filter
+        if !level_filter.is_empty() {
+            let level_match = match level_filter.to_lowercase().as_str() {
+                "msg" | "msgs" => msg.msg_type == crate::app::MessageType::Normal,
+                "action" => msg.msg_type == crate::app::MessageType::Action,
+                "notice" => msg.msg_type == crate::app::MessageType::Notice,
+                "system" => msg.msg_type == crate::app::MessageType::System,
+                "error" => msg.msg_type == crate::app::MessageType::Error,
+                _ => true,
+            };
+            if !level_match { continue; }
+        }
+
+        // Pattern match (case-insensitive substring, or regex if starts with /)
+        let matched = if pattern.is_empty() {
+            true
+        } else if pattern.starts_with('/') && pattern.ends_with('/') {
+            // Regex match
+            let re = &pattern[1..pattern.len()-1];
+            msg.text.to_lowercase().contains(&re.to_lowercase())
+        } else {
+            msg.text.to_lowercase().contains(&pattern.to_lowercase())
+        };
+
+        if matched {
             matches.push(format!("[{}] {}", msg.timestamp, msg.text));
         }
     }
+
     if matches.is_empty() {
         app.system_message("-!- No matches found in scrollback.");
     } else {
-        app.system_message(&format!("-!- Lastlog: {} matches", matches.len()));
-        for m in matches {
-            app.system_message(&m);
+        app.system_message(&format!("-!- Lastlog: {} matches (pattern: '{}')", matches.len(), pattern));
+        // Show last 50 matches
+        let start = if matches.len() > 50 { matches.len() - 50 } else { 0 };
+        for m in &matches[start..] {
+            app.system_message(m);
+        }
+        if matches.len() > 50 {
+            app.system_message(&format!("-!- ... and {} more (use -window to narrow search)", matches.len() - 50));
         }
     }
     CommandResult::Ok
