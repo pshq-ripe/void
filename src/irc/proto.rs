@@ -164,6 +164,21 @@ pub fn handle_irc_message(app: &mut App, msg: &Message) {
             };
             app.buffer_message(&channel, join_msg, MessageType::System);
 
+            // Netsplit recovery detection
+            if app.server().netsplit_active {
+                if let Some(pos) = app.server_mut().netsplit_nicks.iter().position(|n| n == &source) {
+                    app.server_mut().netsplit_nicks.remove(pos);
+                    app.buffer_message(&channel, format!("-!- Netsplit recovery: {} returned", source), MessageType::System);
+                    if app.server_mut().netsplit_nicks.is_empty() {
+                        let duration = app.server().netsplit_start.map(|s| s.elapsed().as_secs()).unwrap_or(0);
+                        app.system_message(&format!("-!- Netsplit over (lasted {}s)", duration));
+                        app.server_mut().netsplit_active = false;
+                        app.server_mut().netsplit_server.clear();
+                        app.server_mut().netsplit_start = None;
+                    }
+                }
+            }
+
             // Sprawdź notify
             if app.is_on_notify(&source) {
                 app.system_message(&format!("-!- Notify: {} is online (joined {})", source, channel));
@@ -188,7 +203,19 @@ pub fn handle_irc_message(app: &mut App, msg: &Message) {
         Command::QUIT(reason) => {
             let r = reason.as_deref().unwrap_or("");
             let reason_str = if r.is_empty() { String::new() } else { format!(" ({})", r) };
-            
+
+            // Netsplit detection — jeśli quit reason zawiera "*.net *.split"
+            let is_netsplit = r.contains(".net") && r.contains(".split");
+            if is_netsplit {
+                if !app.server().netsplit_active {
+                    app.server_mut().netsplit_active = true;
+                    app.server_mut().netsplit_nicks.clear();
+                    app.server_mut().netsplit_server = r.to_string();
+                    app.server_mut().netsplit_start = Some(std::time::Instant::now());
+                }
+                app.server_mut().netsplit_nicks.push(source.clone());
+            }
+
             // Usuń z list nicków we WSZYSTKICH buforach i wyświetl tam info
             let mut affected_buffers = Vec::new();
             for buf in &mut app.buffers {
@@ -198,7 +225,11 @@ pub fn handle_irc_message(app: &mut App, msg: &Message) {
                 }
             }
             for buf_name in affected_buffers {
-                app.buffer_message(&buf_name, format!("* {} has quit IRC{}", source, reason_str), MessageType::System);
+                if is_netsplit {
+                    app.buffer_message(&buf_name, format!("* {} has quit IRC (netsplit){}", source, reason_str), MessageType::System);
+                } else {
+                    app.buffer_message(&buf_name, format!("* {} has quit IRC{}", source, reason_str), MessageType::System);
+                }
             }
         }
 

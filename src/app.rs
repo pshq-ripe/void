@@ -202,6 +202,10 @@ pub struct ServerConnection {
     pub lag_ping_sent: Option<std::time::Instant>, // when ping was sent
     pub raw_log: Vec<String>,          // raw IRC protocol log
     pub raw_log_enabled: bool,
+    pub netsplit_active: bool,
+    pub netsplit_nicks: Vec<String>,   // nicks lost in current netsplit
+    pub netsplit_server: String,       // server that split
+    pub netsplit_start: Option<std::time::Instant>,
 }
 
 /// Parsowane tokeny ISUPPORT (005)
@@ -235,6 +239,10 @@ impl ServerConnection {
             lag_ping_sent: None,
             raw_log: Vec::new(),
             raw_log_enabled: false,
+            netsplit_active: false,
+            netsplit_nicks: Vec::new(),
+            netsplit_server: String::new(),
+            netsplit_start: None,
         }
     }
 }
