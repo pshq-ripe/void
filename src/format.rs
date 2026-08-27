@@ -113,6 +113,78 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                         Style::default().fg(Color::DarkGray).bg(bg),
                     ));
                 }
+                Some('@') => {
+                    // Channel operator status
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    let buf = &app.buffers[app.current_buffer_idx];
+                    let my_nick = &app.server().our_nick;
+                    let is_op = buf.nicks.iter().any(|n| n.nick == *my_nick && n.prefix.contains('@'));
+                    if is_op {
+                        spans.push(Span::styled(
+                            "@".to_string(),
+                            Style::default().fg(Color::Red).bg(bg).add_modifier(Modifier::BOLD),
+                        ));
+                    }
+                }
+                Some('+') => {
+                    // Voice status
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    let buf = &app.buffers[app.current_buffer_idx];
+                    let my_nick = &app.server().our_nick;
+                    let is_voice = buf.nicks.iter().any(|n| n.nick == *my_nick && n.prefix.contains('+'));
+                    if is_voice {
+                        spans.push(Span::styled(
+                            "+".to_string(),
+                            Style::default().fg(Color::Yellow).bg(bg),
+                        ));
+                    }
+                }
+                Some('B') => {
+                    // Bell indicator
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    // Bell is handled by terminal, just show indicator
+                }
+                Some('F') => {
+                    // Flags (user modes)
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    if !app.server().user_modes.is_empty() {
+                        spans.push(Span::styled(
+                            format!("+{}", app.server().user_modes),
+                            Style::default().fg(Color::DarkGray).bg(bg),
+                        ));
+                    }
+                }
+                Some('Q') => {
+                    // Query nick (private message target)
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    let buf = &app.buffers[app.current_buffer_idx];
+                    if !buf.name.starts_with('#') && !buf.name.starts_with('&') && buf.name != "(Status)" {
+                        spans.push(Span::styled(
+                            buf.name.clone(),
+                            Style::default().fg(Color::LightMagenta).bg(bg),
+                        ));
+                    }
+                }
+                Some('R') => {
+                    // Room/channel name (alias for %C)
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    let buf = &app.buffers[app.current_buffer_idx];
+                    if buf.name != "(Status)" {
+                        spans.push(Span::styled(
+                            buf.name.clone(),
+                            Style::default().fg(Color::LightCyan).bg(bg),
+                        ));
+                    }
+                }
+                Some('U') => {
+                    // User count in current channel
+                    flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
+                    let buf = &app.buffers[app.current_buffer_idx];
+                    spans.push(Span::styled(
+                        buf.nicks.len().to_string(),
+                        Style::default().fg(Color::Cyan).bg(bg),
+                    ));
+                }
                 Some('%') => {
                     current_text.push('%');
                 }
