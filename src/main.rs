@@ -147,6 +147,16 @@ async fn main() -> Result<()> {
     let lua_arc = Arc::new(lua);
     app.lua = Some(lua_arc.clone());
     let lua = &*lua_arc;
+
+    // Załaduj skonfigurowany theme lub bieżący z Lua
+    if let Some(theme_name) = engine::get_config_string(lua, "config", "theme") {
+        app.apply_theme(&theme_name);
+    } else if let Ok(themes_tbl) = lua.globals().get::<mlua::Table>("void_themes") {
+        if let Ok(current) = themes_tbl.get::<String>("current") {
+            app.apply_theme(&current);
+        }
+    }
+
     let registry = CommandRegistry::new();
 
     // Kanały komunikacji

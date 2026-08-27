@@ -1,58 +1,128 @@
 -- Void IRC Client Theme System
--- Themes define colors for all UI elements
--- Usage: /theme <name> or /theme list
+-- Themes define comprehensive color schemes for all UI elements
+-- Usage: /theme <name>, /theme list, /theme info <name>, /theme random
 
 void_themes = {}
+void_themes.current = "catppuccin"
 
--- Theme format:
--- Each theme is a table with color assignments for UI elements
--- Colors are IRC mIRC color codes (0-15) or "default"
--- Elements: status_bar, topic_bar, input, nick_op, nick_voice, nick_normal,
---           msg_normal, msg_action, msg_system, msg_notice, msg_highlight,
---           msg_error, msg_server, timestamp, border, scroll_indicator
-
+-- Register a theme definition
 function void_themes.register(name, theme)
     theme.name = name
+    theme.desc = theme.desc or (name .. " theme")
+    theme.is_dark = (theme.is_dark ~= false)
     void_themes[name:lower()] = theme
 end
 
+-- Apply a theme by name
 function void_themes.apply(name)
-    local theme = void_themes[name:lower()]
+    local key = name:lower()
+    local theme = void_themes[key]
     if not theme then
-        void.echo("-!- Theme not found: " .. name)
+        void.echo("-!- Theme not found: " .. name .. ". Type /theme list to see available themes.")
         return false
     end
     -- Apply theme to Rust renderer
-    void.apply_theme(name:lower())
-    void_themes.current = name:lower()
+    void.apply_theme(key)
+    void_themes.current = key
     return true
 end
 
+-- List all available themes
 function void_themes.list()
-    void.echo("-!- Available themes:")
-    for name, theme in pairs(void_themes) do
+    void.echo("-!- ========================================================")
+    void.echo("-!- Available Themes in Void IRC Client:")
+    void.echo("-!- ========================================================")
+    
+    local dark_themes = {}
+    local light_themes = {}
+    
+    for key, theme in pairs(void_themes) do
         if type(theme) == "table" and theme.name then
-            local marker = (void_themes.current == name) and " *" or ""
-            void.echo("  " .. theme.name .. marker)
+            if theme.is_dark then
+                table.insert(dark_themes, theme)
+            else
+                table.insert(light_themes, theme)
+            end
         end
+    end
+    
+    table.sort(dark_themes, function(a, b) return a.name < b.name end)
+    table.sort(light_themes, function(a, b) return a.name < b.name end)
+    
+    void.echo("-!- [Dark Themes]")
+    for _, theme in ipairs(dark_themes) do
+        local marker = (void_themes.current == theme.name:lower()) and " [*ACTIVE*]" or ""
+        void.echo(string.format("  %-18s %s %s", theme.name, marker, theme.desc or ""))
+    end
+    
+    if #light_themes > 0 then
+        void.echo("-!- [Light Themes]")
+        for _, theme in ipairs(light_themes) do
+            local marker = (void_themes.current == theme.name:lower()) and " [*ACTIVE*]" or ""
+            void.echo(string.format("  %-18s %s %s", theme.name, marker, theme.desc or ""))
+        end
+    end
+    
+    void.echo("-!- ========================================================")
+    void.echo("-!- Type /theme <name> to apply, or /theme random for a surprise!")
+end
+
+-- Show detailed information about a theme
+function void_themes.info(name)
+    local theme = void_themes[name:lower()]
+    if not theme then
+        void.echo("-!- Theme not found: " .. name)
+        return
+    end
+    void.echo("-!- -- Theme Info: " .. theme.name .. " --")
+    void.echo("  Description: " .. (theme.desc or "N/A"))
+    void.echo("  Type:        " .. (theme.is_dark and "Dark" or "Light"))
+    void.echo("  Status:      " .. ((void_themes.current == name:lower()) and "Active" or "Inactive"))
+    if theme.ui then
+        void.echo("  Status Bar:  " .. (theme.ui.status_bar_bg or "default") .. " (bg) / " .. (theme.ui.status_bar_fg or "default") .. " (fg)")
+        void.echo("  Topic Bar:   " .. (theme.ui.topic_bar_bg or "default") .. " (bg) / " .. (theme.ui.topic_bar_fg or "default") .. " (fg)")
+        void.echo("  Border:      " .. (theme.ui.border or "default"))
     end
 end
 
--- Command: /theme [name|list]
+-- Apply a random theme
+function void_themes.random()
+    local names = {}
+    for key, theme in pairs(void_themes) do
+        if type(theme) == "table" and theme.name then
+            table.insert(names, theme.name)
+        end
+    end
+    if #names == 0 then return end
+    local choice = names[math.random(1, #names)]
+    void_themes.apply(choice)
+end
+
+-- Command: /theme [name|list|info <name>|random]
 void.register_command("THEME", "void_cmd_theme")
 function void_cmd_theme(args)
     if #args == 0 then
-        if void_themes.current then
-            void.echo("-!- Current theme: " .. void_themes.current)
+        if void_themes.current and void_themes[void_themes.current] then
+            local cur = void_themes[void_themes.current]
+            void.echo("-!- Current theme: " .. cur.name .. " -- " .. (cur.desc or ""))
         else
-            void.echo("-!- No theme active (using defaults)")
+            void.echo("-!- No custom theme active (using defaults)")
         end
         void_themes.list()
         return
     end
-    if args[1] == "list" then
+
+    local subcmd = args[1]:lower()
+    if subcmd == "list" then
         void_themes.list()
         return
+    elseif subcmd == "random" then
+        void_themes.random()
+        return
+    elseif subcmd == "info" and args[2] then
+        void_themes.info(args[2])
+        return
     end
+
     void_themes.apply(args[1])
 end

@@ -30,13 +30,13 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                 Some('T') => {
                     flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
                     let time = chrono::Local::now().format("%H:%M").to_string();
-                    spans.push(Span::styled(time, Style::default().fg(Color::Cyan).bg(bg)));
+                    spans.push(Span::styled(time, Style::default().fg(app.theme_colors.status_bar_info_fg).bg(bg)));
                 }
                 Some('N') => {
                     flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
                     spans.push(Span::styled(
                         app.server().our_nick.clone(),
-                        Style::default().fg(Color::LightGreen).bg(bg).add_modifier(Modifier::BOLD),
+                        Style::default().fg(app.theme_colors.nick_op_nick).bg(bg).add_modifier(Modifier::BOLD),
                     ));
                 }
                 Some('C') => {
@@ -45,7 +45,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     if buf.name != "(Status)" {
                         spans.push(Span::styled(
                             buf.name.clone(),
-                            Style::default().fg(Color::LightCyan).bg(bg),
+                            Style::default().fg(app.theme_colors.input_prompt_fg).bg(bg).add_modifier(Modifier::BOLD),
                         ));
                     }
                 }
@@ -53,14 +53,14 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
                     spans.push(Span::styled(
                         app.server().host.clone(),
-                        Style::default().fg(Color::DarkGray).bg(bg),
+                        Style::default().fg(app.theme_colors.status_bar_info_fg).bg(bg),
                     ));
                 }
                 Some('W') => {
                     flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
                     spans.push(Span::styled(
                         format!("[{}]", app.current_buffer_idx),
-                        Style::default().fg(Color::DarkGray).bg(bg),
+                        Style::default().fg(app.theme_colors.status_bar_info_fg).bg(bg),
                     ));
                 }
                 Some('A') => {
@@ -68,7 +68,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     if app.server().away_message.is_some() {
                         spans.push(Span::styled(
                             "AWAY".to_string(),
-                            Style::default().fg(Color::Yellow).bg(bg).add_modifier(Modifier::BOLD),
+                            Style::default().fg(app.theme_colors.msg_action).bg(bg).add_modifier(Modifier::BOLD),
                         ));
                     }
                 }
@@ -76,7 +76,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
                     spans.push(Span::styled(
                         app.server().host.clone(),
-                        Style::default().fg(Color::DarkGray).bg(bg),
+                        Style::default().fg(app.theme_colors.status_bar_info_fg).bg(bg),
                     ));
                 }
                 Some('M') => {
@@ -84,7 +84,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     if !app.server().user_modes.is_empty() {
                         spans.push(Span::styled(
                             format!("+{}", app.server().user_modes),
-                            Style::default().fg(Color::DarkGray).bg(bg),
+                            Style::default().fg(app.theme_colors.status_bar_info_fg).bg(bg),
                         ));
                     }
                 }
@@ -93,7 +93,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     let buf = &app.buffers[app.current_buffer_idx];
                     spans.push(Span::styled(
                         buf.nicks.len().to_string(),
-                        Style::default().fg(Color::Cyan).bg(bg),
+                        Style::default().fg(app.theme_colors.msg_system).bg(bg),
                     ));
                 }
                 Some('*') => {
@@ -102,7 +102,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     if buf.unread_count > 0 {
                         spans.push(Span::styled(
                             buf.unread_count.to_string(),
-                            Style::default().fg(Color::Yellow).bg(bg).add_modifier(Modifier::BOLD),
+                            Style::default().fg(app.theme_colors.msg_highlight).bg(bg).add_modifier(Modifier::BOLD),
                         ));
                     }
                 }
@@ -126,7 +126,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     if is_op {
                         spans.push(Span::styled(
                             "@".to_string(),
-                            Style::default().fg(Color::Red).bg(bg).add_modifier(Modifier::BOLD),
+                            Style::default().fg(app.theme_colors.nick_op).bg(bg).add_modifier(Modifier::BOLD),
                         ));
                     }
                 }
@@ -139,7 +139,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     if is_voice {
                         spans.push(Span::styled(
                             "+".to_string(),
-                            Style::default().fg(Color::Yellow).bg(bg),
+                            Style::default().fg(app.theme_colors.nick_voice).bg(bg).add_modifier(Modifier::BOLD),
                         ));
                     }
                 }
@@ -154,7 +154,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     if !app.server().user_modes.is_empty() {
                         spans.push(Span::styled(
                             format!("+{}", app.server().user_modes),
-                            Style::default().fg(Color::DarkGray).bg(bg),
+                            Style::default().fg(app.theme_colors.status_bar_info_fg).bg(bg),
                         ));
                     }
                 }
@@ -165,7 +165,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     if !buf.name.starts_with('#') && !buf.name.starts_with('&') && buf.name != "(Status)" {
                         spans.push(Span::styled(
                             buf.name.clone(),
-                            Style::default().fg(Color::LightMagenta).bg(bg),
+                            Style::default().fg(app.theme_colors.msg_notice).bg(bg).add_modifier(Modifier::BOLD),
                         ));
                     }
                 }
@@ -176,7 +176,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     if buf.name != "(Status)" {
                         spans.push(Span::styled(
                             buf.name.clone(),
-                            Style::default().fg(Color::LightCyan).bg(bg),
+                            Style::default().fg(app.theme_colors.input_prompt_fg).bg(bg).add_modifier(Modifier::BOLD),
                         ));
                     }
                 }
@@ -186,7 +186,7 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
                     let buf = &app.buffers[app.current_buffer_idx];
                     spans.push(Span::styled(
                         buf.nicks.len().to_string(),
-                        Style::default().fg(Color::Cyan).bg(bg),
+                        Style::default().fg(app.theme_colors.msg_system).bg(bg),
                     ));
                 }
                 Some('%') => {

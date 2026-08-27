@@ -41,20 +41,24 @@ fn mirc_color(n: u16) -> Color {
     }
 }
 
-/// Kolor nicka na podstawie hasha — spójny kolor dla każdego nicka
-fn nick_color(nick: &str) -> Color {
+/// Kolor nicka na podstawie hasha — spójny kolor dla każdego nicka w palecie theme'a
+fn nick_color(nick: &str, theme: &crate::app::ThemeColors) -> Color {
     let hash: u32 = nick.bytes().fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u32));
-    let colors = [
-        Color::Red, Color::Green, Color::Yellow, Color::Blue,
-        Color::Magenta, Color::Cyan, Color::LightRed, Color::LightGreen,
-        Color::LightYellow, Color::LightBlue, Color::LightMagenta, Color::LightCyan,
-    ];
-    colors[(hash as usize) % colors.len()]
+    if !theme.nick_colors.is_empty() {
+        theme.nick_colors[(hash as usize) % theme.nick_colors.len()]
+    } else {
+        let colors = [
+            Color::Red, Color::Green, Color::Yellow, Color::Blue,
+            Color::Magenta, Color::Cyan, Color::LightRed, Color::LightGreen,
+            Color::LightYellow, Color::LightBlue, Color::LightMagenta, Color::LightCyan,
+        ];
+        colors[(hash as usize) % colors.len()]
+    }
 }
 
 /// Parsuj kody formatowania IRC (\x02 bold, \x03 color, \x1D italic, itp.)
 /// i zwraca Vec<Span> z nałożonymi stylami
-fn parse_irc_formatting(text: &str, base_color: Color) -> Vec<Span<'static>> {
+fn parse_irc_formatting(text: &str, base_color: Color, url_color: Color) -> Vec<Span<'static>> {
     let mut spans = Vec::new();
     let mut current_text = String::new();
     let mut bold = false;
@@ -166,11 +170,11 @@ fn parse_irc_formatting(text: &str, base_color: Color) -> Vec<Span<'static>> {
     if spans.is_empty() {
         spans.push(Span::raw(String::new()));
     }
-    highlight_urls(spans)
+    highlight_urls(spans, url_color)
 }
 
-/// Podświetl URL-e w spanach — http/https/ftp/www podkreślone na niebiesko
-fn highlight_urls(spans: Vec<Span<'static>>) -> Vec<Span<'static>> {
+/// Podświetl URL-e w spanach — http/https/ftp/www podkreślone w kolorze theme'a
+fn highlight_urls(spans: Vec<Span<'static>>, url_color: Color) -> Vec<Span<'static>> {
     let mut result = Vec::new();
     for span in spans {
         let text: &str = span.content.as_ref();
@@ -187,7 +191,7 @@ fn highlight_urls(spans: Vec<Span<'static>>) -> Vec<Span<'static>> {
             }
             result.push(Span::styled(
                 text[start..url_start].to_string(),
-                span.style.add_modifier(Modifier::UNDERLINED).fg(Color::LightBlue),
+                span.style.add_modifier(Modifier::UNDERLINED).fg(url_color),
             ));
             last_end = url_start;
         }
@@ -253,19 +257,19 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
                 if let Some(end) = m.text.find('>') {
                     let nick = &m.text[1..end];
                     let rest = &m.text[end..];
-                    let nc = nick_color(nick);
+                    let nc = nick_color(nick, theme);
                     // Szukaj prefixu w liście nicków
                     let prefix = buf.nicks.iter()
                         .find(|n| n.nick == nick)
                         .map(|n| n.prefix.as_str())
                         .unwrap_or("");
                     let prefix_color = match prefix {
-                        s if s.contains('@') => Color::Red,
-                        s if s.contains('+') => Color::Yellow,
-                        s if s.contains('%') => Color::Cyan,
-                        s if s.contains('~') => Color::Magenta,
-                        s if s.contains('&') => Color::Red,
-                        _ => Color::DarkGray,
+                        s if s.contains('~') => theme.nick_founder,
+                        s if s.contains('&') => theme.nick_admin,
+                        s if s.contains('@') => theme.nick_op,
+                        s if s.contains('%') => theme.nick_halfop,
+                        s if s.contains('+') => theme.nick_voice,
+                        _ => theme.nick_normal_prefix,
                     };
                     let mut v = vec![
                         Span::styled("<".to_string(), Style::default().fg(color)),
@@ -274,27 +278,27 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
                         v.push(Span::styled(prefix.to_string(), Style::default().fg(prefix_color)));
                     }
                     v.push(Span::styled(nick.to_string(), Style::default().fg(nc)));
-                    v.extend(parse_irc_formatting(rest, color));
+                    v.extend(parse_irc_formatting(rest, color, theme.msg_url));
                     v
                 } else {
-                    parse_irc_formatting(&m.text, color)
+                    parse_irc_formatting(&m.text, color, theme.msg_url)
                 }
             } else if m.msg_type == MessageType::Action && m.text.starts_with("* ") {
                 if let Some(space_pos) = m.text[2..].find(' ').map(|p| p + 2) {
                     let nick = &m.text[2..space_pos];
                     let rest = &m.text[space_pos..];
-                    let nc = nick_color(nick);
+                    let nc = nick_color(nick, theme);
                     let prefix = buf.nicks.iter()
                         .find(|n| n.nick == nick)
                         .map(|n| n.prefix.as_str())
                         .unwrap_or("");
                     let prefix_color = match prefix {
-                        s if s.contains('@') => Color::Red,
-                        s if s.contains('+') => Color::Yellow,
-                        s if s.contains('%') => Color::Cyan,
-                        s if s.contains('~') => Color::Magenta,
-                        s if s.contains('&') => Color::Red,
-                        _ => Color::DarkGray,
+                        s if s.contains('~') => theme.nick_founder,
+                        s if s.contains('&') => theme.nick_admin,
+                        s if s.contains('@') => theme.nick_op,
+                        s if s.contains('%') => theme.nick_halfop,
+                        s if s.contains('+') => theme.nick_voice,
+                        _ => theme.nick_normal_prefix,
                     };
                     let mut v = vec![
                         Span::styled("* ".to_string(), Style::default().fg(color)),
@@ -303,18 +307,18 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
                         v.push(Span::styled(prefix.to_string(), Style::default().fg(prefix_color)));
                     }
                     v.push(Span::styled(nick.to_string(), Style::default().fg(nc)));
-                    v.extend(parse_irc_formatting(rest, color));
+                    v.extend(parse_irc_formatting(rest, color, theme.msg_url));
                     v
                 } else {
-                    parse_irc_formatting(&m.text, color)
+                    parse_irc_formatting(&m.text, color, theme.msg_url)
                 }
             } else {
-                parse_irc_formatting(&m.text, color)
+                parse_irc_formatting(&m.text, color, theme.msg_url)
             };
 
             if show_timestamps {
                 let mut line_spans = vec![
-                    Span::styled(format!("[{}] ", m.timestamp), Style::default().fg(Color::DarkGray)),
+                    Span::styled(format!("[{}] ", m.timestamp), Style::default().fg(theme.timestamp)),
                 ];
                 line_spans.extend(msg_spans);
                 Line::from(line_spans)
@@ -327,8 +331,13 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
     let scroll_offset = scroll_offset.min(total_msgs.saturating_sub(1));
     let scroll_row = total_msgs.saturating_sub(scroll_offset).saturating_sub(chat_height);
 
+    let mut chat_block = Block::default().borders(Borders::NONE);
+    if theme.chat_bg != Color::Reset {
+        chat_block = chat_block.style(Style::default().bg(theme.chat_bg));
+    }
+
     let chat_paragraph = Paragraph::new(all_text)
-        .block(Block::default().borders(Borders::NONE))
+        .block(chat_block)
         .wrap(Wrap { trim: false })
         .scroll((scroll_row as u16, 0));
     f.render_widget(chat_paragraph, area);
@@ -338,7 +347,7 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
         let indicator_text = format!(" [{} new] ", buf.new_while_scrolled);
         let indicator = Paragraph::new(Span::styled(
             indicator_text,
-            Style::default().fg(Color::Yellow).bg(Color::DarkGray).add_modifier(Modifier::BOLD),
+            Style::default().fg(theme.scroll_indicator_fg).bg(theme.scroll_indicator_bg).add_modifier(Modifier::BOLD),
         ));
         // Wyświetl na dole okna
         let indicator_area = ratatui::layout::Rect {
@@ -470,7 +479,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             if !ops.is_empty() {
                 nicks_text.push(Line::from(Span::styled(
                     format!(" Ops ({})", ops.len()),
-                    Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC),
+                    Style::default().fg(app.theme_colors.nick_list_header).add_modifier(Modifier::ITALIC),
                 )));
                 for n in &ops {
                     let (prefix_color, nick_color) = match n.prefix.as_str() {
@@ -489,7 +498,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             if !voices.is_empty() {
                 nicks_text.push(Line::from(Span::styled(
                     format!(" Voices ({})", voices.len()),
-                    Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC),
+                    Style::default().fg(app.theme_colors.nick_list_header).add_modifier(Modifier::ITALIC),
                 )));
                 for n in &voices {
                     let (prefix_color, nick_color) = if n.prefix.contains('%') {
@@ -508,7 +517,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             if !regulars.is_empty() {
                 nicks_text.push(Line::from(Span::styled(
                     format!(" Users ({})", regulars.len()),
-                    Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC),
+                    Style::default().fg(app.theme_colors.nick_list_header).add_modifier(Modifier::ITALIC),
                 )));
                 for n in &regulars {
                     nicks_text.push(Line::from(Span::styled(
@@ -518,11 +527,13 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
                 }
             }
 
-            let nicks_paragraph = Paragraph::new(nicks_text).block(
-                Block::default()
-                    .borders(Borders::LEFT)
-                    .border_style(Style::default().fg(app.theme_colors.border)),
-            );
+            let mut nicks_block = Block::default()
+                .borders(Borders::LEFT)
+                .border_style(Style::default().fg(app.theme_colors.border));
+            if app.theme_colors.nick_list_bg != Color::Reset {
+                nicks_block = nicks_block.style(Style::default().bg(app.theme_colors.nick_list_bg));
+            }
+            let nicks_paragraph = Paragraph::new(nicks_text).block(nicks_block);
             f.render_widget(nicks_paragraph, chat_area[1]);
         }
 
@@ -611,7 +622,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         if scroll_offset > 0 {
             buf_spans.push(Span::styled(
                 format!(" ↑{} ", scroll_offset),
-                Style::default().fg(Color::Yellow).bg(app.theme_colors.status_bar_bg).add_modifier(Modifier::BOLD),
+                Style::default().fg(app.theme_colors.scroll_indicator_fg).bg(app.theme_colors.scroll_indicator_bg).add_modifier(Modifier::BOLD),
             ));
         }
 
@@ -625,15 +636,16 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
 
         // Prompt w kolorze theme, tekst w kolorze input_fg
         let input_spans = vec![
-            Span::styled(&prompt, Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(&prompt, Style::default().fg(app.theme_colors.input_prompt_fg).add_modifier(Modifier::BOLD)),
             Span::styled(&app.input_text, Style::default().fg(app.theme_colors.input_fg)),
         ];
-        let input_block = Paragraph::new(Line::from(input_spans))
-        .block(
-            Block::default()
-                .borders(Borders::TOP)
-                .border_style(Style::default().fg(app.theme_colors.border)),
-        );
+        let mut input_block_widget = Block::default()
+            .borders(Borders::TOP)
+            .border_style(Style::default().fg(app.theme_colors.border));
+        if app.theme_colors.input_bg != Color::Reset {
+            input_block_widget = input_block_widget.style(Style::default().bg(app.theme_colors.input_bg));
+        }
+        let input_block = Paragraph::new(Line::from(input_spans)).block(input_block_widget);
         f.render_widget(input_block, main_chunks[3]);
 
         // Pozycja kursora w linii wejścia

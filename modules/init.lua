@@ -24,13 +24,22 @@ end
 
 -- Load themes
 lice5.load("themes/init")
-lice5.load("themes/nord")
+lice5.load("themes/catppuccin")
+lice5.load("themes/catppuccin_latte")
 lice5.load("themes/dracula")
+lice5.load("themes/nord")
 lice5.load("themes/gruvbox")
+lice5.load("themes/gruvbox_light")
 lice5.load("themes/solarized")
+lice5.load("themes/solarized_light")
 lice5.load("themes/tokyonight")
 lice5.load("themes/matrix")
-lice5.load("themes/catppuccin")
+lice5.load("themes/cyberpunk")
+lice5.load("themes/monokai")
+lice5.load("themes/onedark")
+lice5.load("themes/rosepine")
+lice5.load("themes/irssi")
+lice5.load("themes/bitchx")
 
 -- Load all modules (order matters — dependencies first)
 lice5.load("ignore")          -- Enhanced ignore system

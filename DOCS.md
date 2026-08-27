@@ -1909,7 +1909,7 @@ Categorized help system for all commands.
 
 ### 6.26 Theme System
 
-Void includes 7 built-in color themes that change the entire look and feel of the client.
+Void includes 16 built-in color themes that change the entire look and feel of the client, featuring truecolor hex RGB support, high-contrast readability, custom role-based nick colors, and dynamic chat nick palettes.
 
 **Commands:** `/theme`
 
@@ -1917,19 +1917,30 @@ Void includes 7 built-in color themes that change the entire look and feel of th
 |---|---|---|
 | `/theme` | `/theme` | Show current theme and available themes |
 | `/theme` | `/theme <name>` | Apply a theme |
-| `/theme` | `/theme list` | List all available themes |
+| `/theme` | `/theme list` | List all available themes grouped by dark/light |
+| `/theme` | `/theme info <name>` | Show detailed theme info and color specifications |
+| `/theme` | `/theme random` | Apply a random theme |
 
 **Available Themes:**
 
-| Theme | Description |
-|---|---|
-| **Nord** | Arctic, north-bluish color palette (polar night + snow storm) |
-| **Dracula** | Dark theme with vibrant pink, purple, cyan, and green accents |
-| **Gruvbox** | Retro groove warm colors with soft contrast |
-| **Solarized** | Precision colors for machines and people (dark variant) |
-| **TokyoNight** | Clean, dark theme inspired by the lights of Tokyo |
-| **Matrix** | Classic green-on-black terminal aesthetic |
-| **Catppuccin** | Soothing pastel theme (Mocha dark variant) |
+| Theme | Type | Description |
+|---|---|---|
+| **Catppuccin** | Dark | Soothing pastel palette (Mocha variant) |
+| **CatppuccinLatte** | Light | Soothing warm pastel light palette (Latte variant) |
+| **Dracula** | Dark | Iconic dark theme with vibrant neon pink, purple, cyan, and green accents |
+| **Nord** | Dark | Arctic north-bluish clean aesthetic (Polar Night + Frost + Aurora) |
+| **Gruvbox** | Dark | Retro groove warm dark earth colors |
+| **GruvboxLight** | Light | Retro warm parchment light palette |
+| **Solarized** | Dark | Precision color palette by Ethan Schoonover (Dark variant) |
+| **SolarizedLight** | Light | Precision low-contrast cream light palette |
+| **TokyoNight** | Dark | Dark theme inspired by Tokyo's neon night lights |
+| **Matrix** | Dark | Green phosphor CRT hacker terminal aesthetic |
+| **Cyberpunk** | Dark | 80s retro-futuristic synthwave & cyberpunk neon |
+| **Monokai** | Dark | Iconic developer high-contrast palette (Monokai Pro) |
+| **OneDark** | Dark | Atom's classic balanced dark theme |
+| **RosePine** | Dark | Soho vibes with muted rose, pine, and gold |
+| **Irssi** | Dark | Nostalgic Irssi-style classic IRC theme with blue statusbar |
+| **BitchX** | Dark | 90s legendary BitchX hacker aesthetic with red & cyan accents |
 
 **Examples:**
 
@@ -1939,6 +1950,8 @@ Void includes 7 built-in color themes that change the entire look and feel of th
 /theme dracula            -- apply Dracula theme
 /theme nord               -- apply Nord theme
 /theme catppuccin         -- apply Catppuccin theme
+/theme info tokyonight    -- show detailed info for TokyoNight
+/theme random             -- switch to a random theme
 ```
 
 ### 6.27 banlist — Ban List Management

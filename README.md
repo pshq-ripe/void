@@ -7,8 +7,8 @@ A modern, Lua-scriptable IRC client written in Rust, inspired by **epic5** with 
 - **Full IRC protocol** — RFC2812 + irc2.11.2p3 compatibility
 - **IRCv3** — CAP (NEW/DEL/LS/REQ/ACK/NAK), SASL (PLAIN/EXTERNAL/SCRAM-SHA-512/SCRAM-SHA-256/ECDSA), MONITOR, labeled-response, chathistory, server-time, away-notify, account-notify, chghost, extended-join
 - **Lua scripting** — 68 API functions, 102 registered commands, 10 event hooks
-- **LiCe5 compatibility** — 82 modules ported to Lua (see `modules/`)
-- **7 themes** — Nord, Dracula, Gruvbox, Solarized, TokyoNight, Matrix, Catppuccin
+- **LiCe5 compatibility** — 91 modules ported to Lua (see `modules/`)
+- **16 themes** — Catppuccin (Mocha/Latte), Dracula, Nord, Gruvbox (Dark/Light), Solarized (Dark/Light), TokyoNight, Matrix, Cyberpunk, Monokai, OneDark, RosePine, Irssi, BitchX
 - **Multi-server** — simultaneous connections to multiple IRC servers
 - **Split screen** — vertical/horizontal split with independent scroll
 - **SQLCipher** — AES-256 encrypted SQLite storage

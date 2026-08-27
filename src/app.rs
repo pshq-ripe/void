@@ -403,9 +403,11 @@ pub struct HighlightPattern {
 }
 
 /// Kolory theme'a — używane przez renderer
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ThemeColors {
     pub name: String,
+    pub desc: String,
+    pub is_dark: bool,
     // Status bar
     pub status_bar_bg: Color,
     pub status_bar_fg: Color,
@@ -418,11 +420,14 @@ pub struct ThemeColors {
     pub topic_bar_bg: Color,
     pub topic_bar_fg: Color,
     // Input
+    pub input_bg: Color,
     pub input_fg: Color,
-    // Borders
+    pub input_prompt_fg: Color,
+    // Borders & UI
     pub border: Color,
-    // Timestamps
     pub timestamp: Color,
+    pub scroll_indicator_fg: Color,
+    pub scroll_indicator_bg: Color,
     // Messages
     pub msg_normal: Color,
     pub msg_action: Color,
@@ -432,6 +437,7 @@ pub struct ThemeColors {
     pub msg_error: Color,
     pub msg_server: Color,
     pub msg_ctcp: Color,
+    pub msg_url: Color,
     // Nick list
     pub nick_op: Color,
     pub nick_op_nick: Color,
@@ -445,49 +451,74 @@ pub struct ThemeColors {
     pub nick_admin_nick: Color,
     pub nick_normal: Color,
     pub nick_normal_prefix: Color,
+    pub nick_list_header: Color,
     // Chat background
     pub chat_bg: Color,
     pub nick_list_bg: Color,
+    // Dynamic nick palette
+    pub nick_colors: Vec<Color>,
 }
 
 impl Default for ThemeColors {
     fn default() -> Self {
         ThemeColors {
             name: "Default".into(),
-            status_bar_bg: Color::Green,
-            status_bar_fg: Color::Black,
-            status_bar_active_bg: Color::LightGreen,
-            status_bar_active_fg: Color::Black,
-            status_bar_activity_bg: Color::DarkGray,
-            status_bar_activity_fg: Color::White,
-            status_bar_info_fg: Color::Black,
-            topic_bar_bg: Color::Green,
-            topic_bar_fg: Color::Black,
-            input_fg: Color::LightGreen,
-            border: Color::DarkGray,
-            timestamp: Color::DarkGray,
-            msg_normal: Color::Green,
-            msg_action: Color::Yellow,
-            msg_system: Color::Cyan,
-            msg_notice: Color::Magenta,
-            msg_highlight: Color::White,
-            msg_error: Color::LightRed,
-            msg_server: Color::DarkGray,
-            msg_ctcp: Color::Red,
-            nick_op: Color::Red,
-            nick_op_nick: Color::LightGreen,
-            nick_voice: Color::Yellow,
-            nick_voice_nick: Color::Green,
-            nick_halfop: Color::Cyan,
-            nick_halfop_nick: Color::Green,
-            nick_founder: Color::Magenta,
-            nick_founder_nick: Color::LightGreen,
-            nick_admin: Color::Red,
-            nick_admin_nick: Color::LightGreen,
-            nick_normal: Color::Green,
-            nick_normal_prefix: Color::DarkGray,
-            chat_bg: Color::Black,
-            nick_list_bg: Color::Black,
+            desc: "Void Modern Dark Theme".into(),
+            is_dark: true,
+            status_bar_bg: Color::Rgb(30, 30, 46),
+            status_bar_fg: Color::Rgb(166, 173, 200),
+            status_bar_active_bg: Color::Rgb(137, 180, 250),
+            status_bar_active_fg: Color::Rgb(17, 17, 27),
+            status_bar_activity_bg: Color::Rgb(69, 71, 90),
+            status_bar_activity_fg: Color::Rgb(249, 226, 175),
+            status_bar_info_fg: Color::Rgb(186, 194, 222),
+            topic_bar_bg: Color::Rgb(24, 24, 37),
+            topic_bar_fg: Color::Rgb(205, 214, 244),
+            input_bg: Color::Reset,
+            input_fg: Color::Rgb(205, 214, 244),
+            input_prompt_fg: Color::Rgb(137, 180, 250),
+            border: Color::Rgb(69, 71, 90),
+            timestamp: Color::Rgb(108, 112, 134),
+            scroll_indicator_fg: Color::Rgb(17, 17, 27),
+            scroll_indicator_bg: Color::Rgb(249, 226, 175),
+            msg_normal: Color::Rgb(205, 214, 244),
+            msg_action: Color::Rgb(249, 226, 175),
+            msg_system: Color::Rgb(148, 226, 213),
+            msg_notice: Color::Rgb(203, 166, 247),
+            msg_highlight: Color::Rgb(243, 139, 168),
+            msg_error: Color::Rgb(243, 139, 168),
+            msg_server: Color::Rgb(147, 153, 178),
+            msg_ctcp: Color::Rgb(235, 160, 172),
+            msg_url: Color::Rgb(137, 180, 250),
+            nick_op: Color::Rgb(243, 139, 168),
+            nick_op_nick: Color::Rgb(243, 139, 168),
+            nick_voice: Color::Rgb(249, 226, 175),
+            nick_voice_nick: Color::Rgb(249, 226, 175),
+            nick_halfop: Color::Rgb(148, 226, 213),
+            nick_halfop_nick: Color::Rgb(148, 226, 213),
+            nick_founder: Color::Rgb(203, 166, 247),
+            nick_founder_nick: Color::Rgb(203, 166, 247),
+            nick_admin: Color::Rgb(235, 160, 172),
+            nick_admin_nick: Color::Rgb(235, 160, 172),
+            nick_normal: Color::Rgb(205, 214, 244),
+            nick_normal_prefix: Color::Rgb(108, 112, 134),
+            nick_list_header: Color::Rgb(108, 112, 134),
+            chat_bg: Color::Reset,
+            nick_list_bg: Color::Reset,
+            nick_colors: vec![
+                Color::Rgb(243, 139, 168), // Red
+                Color::Rgb(166, 227, 161), // Green
+                Color::Rgb(249, 226, 175), // Yellow
+                Color::Rgb(137, 180, 250), // Blue
+                Color::Rgb(203, 166, 247), // Mauve
+                Color::Rgb(148, 226, 213), // Teal
+                Color::Rgb(250, 179, 135), // Peach
+                Color::Rgb(137, 220, 235), // Sky
+                Color::Rgb(245, 194, 231), // Pink
+                Color::Rgb(180, 190, 254), // Lavender
+                Color::Rgb(235, 160, 172), // Maroon
+                Color::Rgb(166, 209, 137), // Olive/LightGreen
+            ],
         }
     }
 }
@@ -976,25 +1007,109 @@ impl App {
 
     /// Zastosuj theme z Lua
     pub fn apply_theme(&mut self, theme_name: &str) {
-        // Mapuj nazwy kolorów na ratatui Color
-        let parse_color = |s: &str| -> Color {
-            match s.to_lowercase().as_str() {
+        let parse_color_str = |s: &str, default_color: Color| -> Color {
+            let clean = s.trim().to_lowercase();
+            if clean.is_empty() {
+                return default_color;
+            }
+
+            if clean == "default" || clean == "none" || clean == "reset" || clean == "transparent" {
+                return Color::Reset;
+            }
+
+            // Hex format #rgb, #rrggbb, 0xrrggbb
+            if let Some(hex_str) = clean.strip_prefix('#').or_else(|| clean.strip_prefix("0x")) {
+                if hex_str.len() == 3 {
+                    let r = u8::from_str_radix(&hex_str[0..1].repeat(2), 16);
+                    let g = u8::from_str_radix(&hex_str[1..2].repeat(2), 16);
+                    let b = u8::from_str_radix(&hex_str[2..3].repeat(2), 16);
+                    if let (Ok(r), Ok(g), Ok(b)) = (r, g, b) {
+                        return Color::Rgb(r, g, b);
+                    }
+                } else if hex_str.len() == 6 {
+                    let r = u8::from_str_radix(&hex_str[0..2], 16);
+                    let g = u8::from_str_radix(&hex_str[2..4], 16);
+                    let b = u8::from_str_radix(&hex_str[4..6], 16);
+                    if let (Ok(r), Ok(g), Ok(b)) = (r, g, b) {
+                        return Color::Rgb(r, g, b);
+                    }
+                }
+            }
+
+            // rgb(r, g, b)
+            if clean.starts_with("rgb(") && clean.ends_with(')') {
+                let inner = &clean[4..clean.len() - 1];
+                let parts: Vec<&str> = inner.split(',').map(|p| p.trim()).collect();
+                if parts.len() == 3 {
+                    if let (Ok(r), Ok(g), Ok(b)) = (parts[0].parse::<u8>(), parts[1].parse::<u8>(), parts[2].parse::<u8>()) {
+                        return Color::Rgb(r, g, b);
+                    }
+                }
+            }
+
+            // Indexed / ANSI 256
+            let idx_str = clean.strip_prefix("idx:").or_else(|| clean.strip_prefix("ansi:")).unwrap_or(&clean);
+            if let Ok(idx) = idx_str.parse::<u8>() {
+                return Color::Indexed(idx);
+            }
+
+            // Named colors (normalized)
+            let normalized = clean.replace(['_', '-'], "");
+            match normalized.as_str() {
                 "black" => Color::Black,
                 "red" => Color::Red,
                 "green" => Color::Green,
                 "yellow" => Color::Yellow,
                 "blue" => Color::Blue,
                 "magenta" | "purple" => Color::Magenta,
-                "cyan" => Color::Cyan,
+                "cyan" | "teal" => Color::Cyan,
                 "white" => Color::White,
-                "dark_gray" | "darkgray" | "gray" => Color::DarkGray,
-                "light_red" | "lightred" => Color::LightRed,
-                "light_green" | "lightgreen" => Color::LightGreen,
-                "light_yellow" | "lightyellow" => Color::LightYellow,
-                "light_blue" | "lightblue" => Color::LightBlue,
-                "light_magenta" | "lightmagenta" => Color::LightMagenta,
-                "light_cyan" | "lightcyan" => Color::LightCyan,
-                _ => Color::White,
+                "gray" | "grey" | "darkgray" => Color::DarkGray,
+                "lightgray" | "lightgrey" | "silver" => Color::Gray,
+                "lightred" | "brightred" => Color::LightRed,
+                "lightgreen" | "brightgreen" | "lime" => Color::LightGreen,
+                "lightyellow" | "brightyellow" => Color::LightYellow,
+                "lightblue" | "brightblue" => Color::LightBlue,
+                "lightmagenta" | "brightmagenta" | "pink" => Color::LightMagenta,
+                "lightcyan" | "brightcyan" => Color::LightCyan,
+
+                // Extended named dark and accent colors
+                "darkred" => Color::Rgb(139, 0, 0),
+                "darkgreen" => Color::Rgb(0, 100, 0),
+                "darkblue" | "navy" => Color::Rgb(0, 0, 139),
+                "darkmagenta" => Color::Rgb(139, 0, 139),
+                "darkcyan" => Color::Rgb(0, 139, 139),
+                "darkyellow" | "olive" => Color::Rgb(139, 139, 0),
+                "orange" => Color::Rgb(255, 140, 0),
+                "peach" => Color::Rgb(250, 179, 135),
+                "violet" | "lavender" => Color::Rgb(180, 190, 254),
+                "gold" => Color::Rgb(255, 215, 0),
+                "brown" => Color::Rgb(165, 42, 42),
+                _ => default_color,
+            }
+        };
+
+        let parse_lua_val = |val: &mlua::Value, default_color: Color| -> Color {
+            match val {
+                mlua::Value::String(s) => {
+                    if let Ok(s_str) = s.to_str() {
+                        parse_color_str(&s_str, default_color)
+                    } else {
+                        default_color
+                    }
+                }
+                mlua::Value::Integer(n) if *n >= 0 && *n <= 255 => Color::Indexed(*n as u8),
+                mlua::Value::Table(tbl) => {
+                    let r = tbl.get::<u8>("r").or_else(|_| tbl.get::<u8>(1)).ok();
+                    let g = tbl.get::<u8>("g").or_else(|_| tbl.get::<u8>(2)).ok();
+                    let b = tbl.get::<u8>("b").or_else(|_| tbl.get::<u8>(3)).ok();
+                    if let (Some(r), Some(g), Some(b)) = (r, g, b) {
+                        Color::Rgb(r, g, b)
+                    } else {
+                        default_color
+                    }
+                }
+                _ => default_color,
             }
         };
 
@@ -1002,48 +1117,83 @@ impl App {
         if let Some(ref lua) = self.lua {
             if let Ok(themes_table) = lua.globals().get::<mlua::Table>("void_themes") {
                 if let Ok(theme_table) = themes_table.get::<mlua::Table>(theme_name.to_lowercase()) {
+                    if let Ok(desc) = theme_table.get::<String>("desc") {
+                        self.theme_colors.desc = desc;
+                    }
+                    if let Ok(is_dark) = theme_table.get::<bool>("is_dark") {
+                        self.theme_colors.is_dark = is_dark;
+                    }
+
                     // Czytaj ui colors
                     if let Ok(ui) = theme_table.get::<mlua::Table>("ui") {
-                        if let Ok(v) = ui.get::<String>("status_bar_bg") { self.theme_colors.status_bar_bg = parse_color(&v); }
-                        if let Ok(v) = ui.get::<String>("status_bar_fg") { self.theme_colors.status_bar_fg = parse_color(&v); }
-                        if let Ok(v) = ui.get::<String>("status_bar_active_bg") { self.theme_colors.status_bar_active_bg = parse_color(&v); }
-                        if let Ok(v) = ui.get::<String>("status_bar_active_fg") { self.theme_colors.status_bar_active_fg = parse_color(&v); }
-                        if let Ok(v) = ui.get::<String>("status_bar_activity_bg") { self.theme_colors.status_bar_activity_bg = parse_color(&v); }
-                        if let Ok(v) = ui.get::<String>("status_bar_activity_fg") { self.theme_colors.status_bar_activity_fg = parse_color(&v); }
-                        if let Ok(v) = ui.get::<String>("status_bar_info_fg") { self.theme_colors.status_bar_info_fg = parse_color(&v); }
-                        if let Ok(v) = ui.get::<String>("topic_bar_bg") { self.theme_colors.topic_bar_bg = parse_color(&v); }
-                        if let Ok(v) = ui.get::<String>("topic_bar_fg") { self.theme_colors.topic_bar_fg = parse_color(&v); }
-                        if let Ok(v) = ui.get::<String>("input_fg") { self.theme_colors.input_fg = parse_color(&v); }
-                        if let Ok(v) = ui.get::<String>("border") { self.theme_colors.border = parse_color(&v); }
-                        if let Ok(v) = ui.get::<String>("timestamp") { self.theme_colors.timestamp = parse_color(&v); }
+                        if let Ok(v) = ui.get::<mlua::Value>("status_bar_bg") { self.theme_colors.status_bar_bg = parse_lua_val(&v, self.theme_colors.status_bar_bg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("status_bar_fg") { self.theme_colors.status_bar_fg = parse_lua_val(&v, self.theme_colors.status_bar_fg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("status_bar_active_bg") { self.theme_colors.status_bar_active_bg = parse_lua_val(&v, self.theme_colors.status_bar_active_bg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("status_bar_active_fg") { self.theme_colors.status_bar_active_fg = parse_lua_val(&v, self.theme_colors.status_bar_active_fg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("status_bar_activity_bg") { self.theme_colors.status_bar_activity_bg = parse_lua_val(&v, self.theme_colors.status_bar_activity_bg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("status_bar_activity_fg") { self.theme_colors.status_bar_activity_fg = parse_lua_val(&v, self.theme_colors.status_bar_activity_fg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("status_bar_info_fg") { self.theme_colors.status_bar_info_fg = parse_lua_val(&v, self.theme_colors.status_bar_info_fg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("topic_bar_bg") { self.theme_colors.topic_bar_bg = parse_lua_val(&v, self.theme_colors.topic_bar_bg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("topic_bar_fg") { self.theme_colors.topic_bar_fg = parse_lua_val(&v, self.theme_colors.topic_bar_fg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("input_bg") { self.theme_colors.input_bg = parse_lua_val(&v, self.theme_colors.input_bg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("input_fg") { self.theme_colors.input_fg = parse_lua_val(&v, self.theme_colors.input_fg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("input_prompt_fg") { self.theme_colors.input_prompt_fg = parse_lua_val(&v, self.theme_colors.input_prompt_fg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("border") { self.theme_colors.border = parse_lua_val(&v, self.theme_colors.border); }
+                        if let Ok(v) = ui.get::<mlua::Value>("timestamp") { self.theme_colors.timestamp = parse_lua_val(&v, self.theme_colors.timestamp); }
+                        if let Ok(v) = ui.get::<mlua::Value>("scroll_indicator_fg") { self.theme_colors.scroll_indicator_fg = parse_lua_val(&v, self.theme_colors.scroll_indicator_fg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("scroll_indicator_bg") { self.theme_colors.scroll_indicator_bg = parse_lua_val(&v, self.theme_colors.scroll_indicator_bg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("chat_bg") { self.theme_colors.chat_bg = parse_lua_val(&v, self.theme_colors.chat_bg); }
+                        if let Ok(v) = ui.get::<mlua::Value>("nick_list_bg") { self.theme_colors.nick_list_bg = parse_lua_val(&v, self.theme_colors.nick_list_bg); }
                     }
+
                     // Czytaj message colors
                     if let Ok(msgs) = theme_table.get::<mlua::Table>("messages") {
-                        if let Ok(v) = msgs.get::<String>("normal") { self.theme_colors.msg_normal = parse_color(&v); }
-                        if let Ok(v) = msgs.get::<String>("action") { self.theme_colors.msg_action = parse_color(&v); }
-                        if let Ok(v) = msgs.get::<String>("system") { self.theme_colors.msg_system = parse_color(&v); }
-                        if let Ok(v) = msgs.get::<String>("notice") { self.theme_colors.msg_notice = parse_color(&v); }
-                        if let Ok(v) = msgs.get::<String>("highlight") { self.theme_colors.msg_highlight = parse_color(&v); }
-                        if let Ok(v) = msgs.get::<String>("error") { self.theme_colors.msg_error = parse_color(&v); }
-                        if let Ok(v) = msgs.get::<String>("server") { self.theme_colors.msg_server = parse_color(&v); }
-                        if let Ok(v) = msgs.get::<String>("ctcp") { self.theme_colors.msg_ctcp = parse_color(&v); }
+                        if let Ok(v) = msgs.get::<mlua::Value>("normal") { self.theme_colors.msg_normal = parse_lua_val(&v, self.theme_colors.msg_normal); }
+                        if let Ok(v) = msgs.get::<mlua::Value>("action") { self.theme_colors.msg_action = parse_lua_val(&v, self.theme_colors.msg_action); }
+                        if let Ok(v) = msgs.get::<mlua::Value>("system") { self.theme_colors.msg_system = parse_lua_val(&v, self.theme_colors.msg_system); }
+                        if let Ok(v) = msgs.get::<mlua::Value>("notice") { self.theme_colors.msg_notice = parse_lua_val(&v, self.theme_colors.msg_notice); }
+                        if let Ok(v) = msgs.get::<mlua::Value>("highlight") { self.theme_colors.msg_highlight = parse_lua_val(&v, self.theme_colors.msg_highlight); }
+                        if let Ok(v) = msgs.get::<mlua::Value>("error") { self.theme_colors.msg_error = parse_lua_val(&v, self.theme_colors.msg_error); }
+                        if let Ok(v) = msgs.get::<mlua::Value>("server") { self.theme_colors.msg_server = parse_lua_val(&v, self.theme_colors.msg_server); }
+                        if let Ok(v) = msgs.get::<mlua::Value>("ctcp") { self.theme_colors.msg_ctcp = parse_lua_val(&v, self.theme_colors.msg_ctcp); }
+                        if let Ok(v) = msgs.get::<mlua::Value>("url") { self.theme_colors.msg_url = parse_lua_val(&v, self.theme_colors.msg_url); }
                     }
+
                     // Czytaj nick colors
                     if let Ok(nicks) = theme_table.get::<mlua::Table>("nicks") {
-                        if let Ok(v) = nicks.get::<String>("op") { self.theme_colors.nick_op = parse_color(&v); }
-                        if let Ok(v) = nicks.get::<String>("op_nick") { self.theme_colors.nick_op_nick = parse_color(&v); }
-                        if let Ok(v) = nicks.get::<String>("voice") { self.theme_colors.nick_voice = parse_color(&v); }
-                        if let Ok(v) = nicks.get::<String>("voice_nick") { self.theme_colors.nick_voice_nick = parse_color(&v); }
-                        if let Ok(v) = nicks.get::<String>("halfop") { self.theme_colors.nick_halfop = parse_color(&v); }
-                        if let Ok(v) = nicks.get::<String>("halfop_nick") { self.theme_colors.nick_halfop_nick = parse_color(&v); }
-                        if let Ok(v) = nicks.get::<String>("founder") { self.theme_colors.nick_founder = parse_color(&v); }
-                        if let Ok(v) = nicks.get::<String>("founder_nick") { self.theme_colors.nick_founder_nick = parse_color(&v); }
-                        if let Ok(v) = nicks.get::<String>("admin") { self.theme_colors.nick_admin = parse_color(&v); }
-                        if let Ok(v) = nicks.get::<String>("admin_nick") { self.theme_colors.nick_admin_nick = parse_color(&v); }
-                        if let Ok(v) = nicks.get::<String>("normal") { self.theme_colors.nick_normal = parse_color(&v); }
-                        if let Ok(v) = nicks.get::<String>("normal_prefix") { self.theme_colors.nick_normal_prefix = parse_color(&v); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("op") { self.theme_colors.nick_op = parse_lua_val(&v, self.theme_colors.nick_op); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("op_nick") { self.theme_colors.nick_op_nick = parse_lua_val(&v, self.theme_colors.nick_op_nick); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("voice") { self.theme_colors.nick_voice = parse_lua_val(&v, self.theme_colors.nick_voice); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("voice_nick") { self.theme_colors.nick_voice_nick = parse_lua_val(&v, self.theme_colors.nick_voice_nick); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("halfop") { self.theme_colors.nick_halfop = parse_lua_val(&v, self.theme_colors.nick_halfop); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("halfop_nick") { self.theme_colors.nick_halfop_nick = parse_lua_val(&v, self.theme_colors.nick_halfop_nick); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("founder") { self.theme_colors.nick_founder = parse_lua_val(&v, self.theme_colors.nick_founder); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("founder_nick") { self.theme_colors.nick_founder_nick = parse_lua_val(&v, self.theme_colors.nick_founder_nick); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("admin") { self.theme_colors.nick_admin = parse_lua_val(&v, self.theme_colors.nick_admin); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("admin_nick") { self.theme_colors.nick_admin_nick = parse_lua_val(&v, self.theme_colors.nick_admin_nick); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("normal") { self.theme_colors.nick_normal = parse_lua_val(&v, self.theme_colors.nick_normal); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("normal_prefix") { self.theme_colors.nick_normal_prefix = parse_lua_val(&v, self.theme_colors.nick_normal_prefix); }
+                        if let Ok(v) = nicks.get::<mlua::Value>("header") { self.theme_colors.nick_list_header = parse_lua_val(&v, self.theme_colors.nick_list_header); }
                     }
-                    self.theme_colors.name = theme_name.to_string();
+
+                    // Czytaj nick_colors (dynamic nick palette)
+                    if let Ok(palette) = theme_table.get::<mlua::Table>("nick_colors") {
+                        let mut colors = Vec::new();
+                        for val in palette.sequence_values::<mlua::Value>() {
+                            if let Ok(v) = val {
+                                colors.push(parse_lua_val(&v, Color::White));
+                            }
+                        }
+                        if !colors.is_empty() {
+                            self.theme_colors.nick_colors = colors;
+                        }
+                    }
+
+                    if let Ok(name) = theme_table.get::<String>("name") {
+                        self.theme_colors.name = name;
+                    } else {
+                        self.theme_colors.name = theme_name.to_string();
+                    }
                 }
             }
         }

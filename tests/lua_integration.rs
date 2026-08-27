@@ -147,5 +147,25 @@ fn lua_integration_test() {
     }
     println!("  Found: {}/{} commands [{}]", found, test_cmds.len(), if missing == 0 { "OK" } else { "PARTIAL" });
 
+    // 9. Test Themes System
+    println!("\n--- Theme System Test ---");
+    let mut app = void::app::App::new("testnick", "irc.test.com", 6697, true, "testpass");
+    app.lua = Some(Arc::new(lua));
+
+    let themes = [
+        "catppuccin", "catppuccinlatte", "dracula", "nord",
+        "gruvbox", "gruvboxlight", "solarized", "solarizedlight",
+        "tokyonight", "matrix", "cyberpunk", "monokai",
+        "onedark", "rosepine", "irssi", "bitchx"
+    ];
+
+    for theme_name in &themes {
+        app.apply_theme(theme_name);
+        println!("  [OK] Theme '{}' applied successfully -> desc: '{}', status_bar_bg: {:?}",
+            app.theme_colors.name, app.theme_colors.desc, app.theme_colors.status_bar_bg);
+        assert!(!app.theme_colors.name.is_empty());
+        assert!(!app.theme_colors.desc.is_empty());
+    }
+
     println!("\n=== Test Complete ===");
 }
