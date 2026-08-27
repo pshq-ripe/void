@@ -1066,6 +1066,14 @@ impl App {
                 is_channel,
             );
         }
+
+        // Zapisz layout okien
+        let _ = storage.init_layout_table();
+        let layout: Vec<(String, Option<usize>, bool)> = self.buffers.iter().enumerate().map(|(i, buf)| {
+            let split_idx = if self.split_buffer_idx == Some(i) { Some(i) } else { None };
+            (buf.name.clone(), split_idx, self.split_horizontal)
+        }).collect();
+        let _ = storage.save_window_layout(&layout);
     }
 
     /// Przywróć sesję z SQLite — dołącz do zapisanych kanałów

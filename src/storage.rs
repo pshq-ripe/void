@@ -285,4 +285,40 @@ impl Storage {
         self.conn.execute("DELETE FROM session_buffers", [])?;
         Ok(())
     }
+
+    // ─── Window layout persistence ───────────────────
+
+    pub fn init_layout_table(&self) -> SqlResult<()> {
+        self.conn.execute_batch("
+            CREATE TABLE IF NOT EXISTS window_layout (
+                idx INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                split_idx INTEGER,
+                split_horizontal INTEGER DEFAULT 0
+            );
+        ")?;
+        Ok(())
+    }
+
+    pub fn save_window_layout(&self, windows: &[(String, Option<usize>, bool)]) -> SqlResult<()> {
+        self.conn.execute("DELETE FROM window_layout", [])?;
+        for (i, (name, split_idx, horizontal)) in windows.iter().enumerate() {
+            self.conn.execute(
+                "INSERT INTO window_layout (idx, name, split_idx, split_horizontal) VALUES (?1, ?2, ?3, ?4)",
+                params![i as i32, name, split_idx.map(|s| s as i32), *horizontal as i32],
+            )?;
+        }
+        Ok(())
+    }
+
+    pub fn get_window_layout(&self) -> Vec<(String, Option<usize>, bool)> {
+        let mut stmt = self.conn.prepare("SELECT name, split_idx, split_horizontal FROM window_layout ORDER BY idx").unwrap();
+        stmt.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, Option<i32>>(1)?.map(|s| s as usize),
+                row.get::<_, i32>(2)? != 0,
+            ))
+        }).unwrap().filter_map(|r| r.ok()).collect()
+    }
 }
