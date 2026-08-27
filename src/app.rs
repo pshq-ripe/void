@@ -163,6 +163,10 @@ pub struct NotifyEntry {
     pub nick: String,
     pub online: bool,
     pub last_seen: Option<Instant>,
+    pub userhost: String,       // user@host when online
+    pub channels: Vec<String>,  // channels when online
+    pub verified: bool,         // WHOIS verified
+    pub action: String,         // action on signon/signoff (e.g., "echo", "beep")
 }
 
 /// Wpis w systemie /IGNORE
@@ -1010,6 +1014,10 @@ impl App {
                 nick,
                 online: false,
                 last_seen: None,
+                userhost: String::new(),
+                channels: Vec::new(),
+                verified: false,
+                action: "echo".into(),
             });
         }
 

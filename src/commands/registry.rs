@@ -940,6 +940,10 @@ fn cmd_notify(app: &mut App, args: &[&str]) -> CommandResult {
             nick: nick.to_string(),
             online: false,
             last_seen: None,
+            userhost: String::new(),
+            channels: Vec::new(),
+            verified: false,
+            action: "echo".into(),
         });
         app.system_message(&format!("-!- Added {} to notify list.", nick));
         // Wyślij ISON żeby sprawdzić status

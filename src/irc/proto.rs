@@ -665,17 +665,29 @@ fn handle_server_response(app: &mut App, resp: Response, args: &[String], _sourc
             if args.len() >= 2 {
                 let online_nicks: Vec<&str> = args[1].split_whitespace().collect();
                 let mut messages = Vec::new();
+                let mut whois_nicks = Vec::new();
                 for notify in &mut app.notify_list {
                     let was_online = notify.online;
                     notify.online = online_nicks.iter().any(|n| n.eq_ignore_ascii_case(&notify.nick));
                     if notify.online && !was_online {
+                        notify.last_seen = Some(std::time::Instant::now());
                         messages.push(format!("-!- Notify: {} is now ONLINE", notify.nick));
+                        whois_nicks.push(notify.nick.clone());
                     } else if !notify.online && was_online {
+                        notify.verified = false;
+                        notify.userhost.clear();
+                        notify.channels.clear();
                         messages.push(format!("-!- Notify: {} is now OFFLINE", notify.nick));
                     }
                 }
                 for msg in messages {
                     app.system_message(&msg);
+                }
+                // WHOIS verification for newly online nicks
+                for nick in whois_nicks {
+                    if let Some(s) = &app.server().sender {
+                        let _ = s.send(irc::client::prelude::Command::WHOIS(None, nick));
+                    }
                 }
             }
         }
