@@ -2587,6 +2587,13 @@ All settings are accessible via `/set <variable> <value>`. Values are case-insen
 | `SHOW_STATUS_ALL` | `ON` | Show status bar for all windows |
 | `STATUS_FORMAT` | ` [ $N ] [ $C ] [ $T ] ` | Status bar format template |
 | `INPUT_PROMPT` | `> ` | Input line prompt |
+| `SHOW_NICKLIST` | `ON` | Show/hide nick list panel |
+| `SHOW_STATUSBAR` | `ON` | Show/hide status bar |
+| `SHOW_USER_COUNT` | `ON` | Show/hide user counts in nick list headers |
+| `MOUSE` | `OFF` | Enable/disable mouse capture |
+| `NICK_WIDTH` | `18` | Nick list panel width (12-40) |
+| `SSL_VERIFY` | `OFF` | Verify SSL certificates |
+| `DEBUG` | `OFF` | Debug mode (enables raw log) |
 
 #### Notification Settings
 

@@ -197,6 +197,33 @@ end
 
 ## Configuration
 
+## UI Customization
+
+### Toggle Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `SHOW_NICKLIST` | ON | Show/hide nick list panel |
+| `SHOW_STATUSBAR` | ON | Show/hide status bar |
+| `SHOW_USER_COUNT` | ON | Show/hide user counts in nick list headers |
+| `SHOW_TIMESTAMPS` | ON | Show/hide message timestamps |
+| `MOUSE` | OFF | Enable/disable mouse capture (OFF = text selection works) |
+
+Usage: `/set SHOW_NICKLIST OFF` to hide nick list, `/set SHOW_STATUSBAR OFF` to hide status bar.
+
+### Dynamic Prompt
+
+The input prompt shows context:
+- Status window: `[nick]> `
+- Channel: `[#channel@nick]> `
+- Query: `[user@nick]> `
+
+### Themes
+
+16 built-in themes: `/theme list`, `/theme dracula`, `/theme random`
+
+## Configuration
+
 - **config.lua** — Lua configuration (loaded on startup)
 - **~/.void/void.db** — SQLCipher encrypted SQLite database
 - **~/.void/void.conf** — Text backup of settings
