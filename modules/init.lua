@@ -9,16 +9,16 @@ lice5 = {
     loaded = {},
 }
 
--- Helper: load a module
+-- Helper: load a module (silent — collects names for summary)
+lice5._errors = {}
 function lice5.load(name)
     local path = "modules/" .. name .. ".lua"
     local f, err = loadfile(path)
     if f then
         f()
         lice5.loaded[name] = true
-        void.echo("-!- Module loaded: " .. name)
     else
-        void.echo("-!- Module error: " .. name .. ": " .. (err or "unknown"))
+        table.insert(lice5._errors, name .. ": " .. (err or "unknown"))
     end
 end
 
@@ -117,10 +117,18 @@ lice5.load("fkeys")           -- Function key bindings
 lice5.load("boot")            -- Boot sequence
 lice5.load("stubs")           -- Stub functions
 
--- Count loaded modules
+-- Count loaded modules and show compact summary
 local count = 0
 for _ in pairs(lice5.loaded) do count = count + 1 end
-void.echo("-!- LiCe5 v" .. lice5.version .. " loaded (" .. count .. " modules)")
+local err_count = #lice5._errors
+if err_count > 0 then
+    void.echo("-!- LiCe5 v" .. lice5.version .. ": " .. count .. " modules loaded, " .. err_count .. " errors")
+    for _, e in ipairs(lice5._errors) do
+        void.echo("  ! " .. e)
+    end
+else
+    void.echo("-!- LiCe5 v" .. lice5.version .. ": " .. count .. " modules loaded")
+end
 
 -- Module info registry
 lice5.module_info = {
