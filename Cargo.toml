@@ -2,6 +2,10 @@
 name = "void"
 version = "0.3.0"
 edition = "2024"
+authors = ["Łukasz \"pshq\" Piotrowski <me@pshq.org>"]
+description = "A modern, Lua-scriptable IRC client inspired by epic5/LiCe5/epic6"
+license = "MIT"
+repository = "https://github.com/pshq-ripe/void"
 
 [dependencies]
 anyhow = "1.0.104"

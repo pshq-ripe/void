@@ -335,6 +335,12 @@ impl Settings {
         map.insert("SHOW_NICKLIST".into(), "ON".into());
         map.insert("SHOW_STATUSBAR".into(), "ON".into());
         map.insert("SHOW_USER_COUNT".into(), "ON".into());
+        map.insert("DEFAULT_KICK_REASON".into(), "Requested".into());
+        map.insert("DEFAULT_PART_REASON".into(), "Leaving".into());
+        map.insert("DEFAULT_QUIT_REASON".into(), "Leaving".into());
+        map.insert("CTCP_VERSION".into(), "Void IRC Client v0.3.0 (Rust)".into());
+        map.insert("CTCP_USERINFO".into(), "Void IRC Client".into());
+        map.insert("CTCP_SOURCE".into(), "https://github.com/pshq-ripe/void".into());
         map.insert("NICK_WIDTH".into(), "18".into());
         Settings { map }
     }
