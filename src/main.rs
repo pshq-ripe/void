@@ -592,17 +592,17 @@ async fn main() -> Result<()> {
         }
     }
 
-    // ─── Zapisz stan do SQLite ────────────────────────
-    app.save_to_db();
+    // ─── Zapisz stan do SQLite (z timeoutem) ──────────
+    let _ = std::thread::spawn(|| {
+        app.save_to_db();
+    }).join();
 
-    // ─── Cleanup ─────────────────────────────────────
-    if app.settings.get_bool("MOUSE") {
-        let _ = execute!(std::io::stdout(), crossterm::event::DisableMouseCapture);
-    }
+    // ─── Cleanup (ignoruj błędy) ─────────────────────
+    let _ = execute!(std::io::stdout(), crossterm::event::DisableMouseCapture);
     let _ = disable_raw_mode();
     let _ = execute!(terminal.backend_mut(), LeaveAlternateScreen);
     let _ = terminal.show_cursor();
 
-    // Wymuś zakończenie procesu (tokio runtime może nie zakończyć się czysto)
+    // Wymuś zakończenie procesu
     std::process::exit(0);
 }
