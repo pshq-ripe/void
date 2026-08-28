@@ -250,20 +250,29 @@ fn cmd_reconnect(app: &mut App, _args: &[&str]) -> CommandResult {
 
 fn cmd_quit(app: &mut App, args: &[&str]) -> CommandResult {
     let reason = if args.is_empty() {
-        // Spróbuj pobrać losowy powód z Lua (get_quit_message)
+        // Priorytet: Lua > theme > settings
         let lua_ref = app.lua.clone();
         if let Some(lua) = lua_ref {
             if let Ok(func) = lua.globals().get::<mlua::Function>("get_quit_message") {
                 if let Ok(msg) = func.call::<String>(()) {
-                    if !msg.is_empty() { msg } else { app.settings.get("DEFAULT_QUIT_REASON").to_string() }
-                } else { app.settings.get("DEFAULT_QUIT_REASON").to_string() }
-            } else { app.settings.get("DEFAULT_QUIT_REASON").to_string() }
-        } else { app.settings.get("DEFAULT_QUIT_REASON").to_string() }
+                    if !msg.is_empty() { return quit_with(app, &msg); }
+                }
+            }
+        }
+        if !app.theme_colors.default_quit_reason.is_empty() {
+            app.theme_colors.default_quit_reason.clone()
+        } else {
+            app.settings.get("DEFAULT_QUIT_REASON").to_string()
+        }
     } else {
         args.join(" ")
     };
+    quit_with(app, &reason)
+}
+
+fn quit_with(app: &mut App, reason: &str) -> CommandResult {
     if let Some(s) = &app.server().sender {
-        let _ = s.send_quit(&reason);
+        let _ = s.send_quit(reason);
     }
     app.running = false;
     CommandResult::Ok
@@ -299,7 +308,13 @@ fn cmd_part(app: &mut App, args: &[&str]) -> CommandResult {
     if channel == "(Status)" {
         return CommandResult::Error("Cannot part the status window.".into());
     }
-    let reason = if args.len() > 1 { args[1..].join(" ") } else { app.settings.get("DEFAULT_PART_REASON").to_string() };
+    let reason = if args.len() > 1 { args[1..].join(" ") } else {
+        if !app.theme_colors.default_part_reason.is_empty() {
+            app.theme_colors.default_part_reason.clone()
+        } else {
+            app.settings.get("DEFAULT_PART_REASON").to_string()
+        }
+    };
     if let Some(s) = &app.server().sender {
         let _ = s.send(irc::client::prelude::Command::PART(channel.clone(), Some(reason)));
     }
@@ -343,7 +358,13 @@ fn cmd_kick(app: &mut App, args: &[&str]) -> CommandResult {
     }
     let channel = app.buffers[app.current_buffer_idx].name.clone();
     let nick = args[0];
-    let reason = if args.len() > 1 { args[1..].join(" ") } else { app.settings.get("DEFAULT_KICK_REASON").to_string() };
+    let reason = if args.len() > 1 { args[1..].join(" ") } else {
+        if !app.theme_colors.default_kick_reason.is_empty() {
+            app.theme_colors.default_kick_reason.clone()
+        } else {
+            app.settings.get("DEFAULT_KICK_REASON").to_string()
+        }
+    };
     if let Some(s) = &app.server().sender {
         let _ = s.send(irc::client::prelude::Command::KICK(channel, nick.to_string(), Some(reason)));
     }

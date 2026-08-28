@@ -483,6 +483,14 @@ pub struct ThemeColors {
     pub fmt_notice: String,
     pub fmt_action: String,
     pub fmt_public: String,
+    // CTCP responses
+    pub ctcp_version: String,
+    pub ctcp_userinfo: String,
+    pub ctcp_source: String,
+    // Default reasons
+    pub default_kick_reason: String,
+    pub default_part_reason: String,
+    pub default_quit_reason: String,
 }
 
 impl Default for ThemeColors {
@@ -561,6 +569,14 @@ impl Default for ThemeColors {
             fmt_notice: "-$0- $1".into(),
             fmt_action: "* $0 $1".into(),
             fmt_public: "<$0> $1".into(),
+            // CTCP responses
+            ctcp_version: "Void IRC Client v0.3.0 (Rust)".into(),
+            ctcp_userinfo: "Void IRC Client".into(),
+            ctcp_source: "https://github.com/pshq-ripe/void".into(),
+            // Default reasons
+            default_kick_reason: "Requested".into(),
+            default_part_reason: "Leaving".into(),
+            default_quit_reason: "Leaving".into(),
         }
     }
 }
@@ -1248,6 +1264,18 @@ impl App {
                         if let Ok(v) = fmts.get::<String>("notice") { self.theme_colors.fmt_notice = v; }
                         if let Ok(v) = fmts.get::<String>("action") { self.theme_colors.fmt_action = v; }
                         if let Ok(v) = fmts.get::<String>("public") { self.theme_colors.fmt_public = v; }
+                    }
+                    // Czytaj CTCP responses
+                    if let Ok(ctcp) = theme_table.get::<mlua::Table>("ctcp") {
+                        if let Ok(v) = ctcp.get::<String>("version") { self.theme_colors.ctcp_version = v; }
+                        if let Ok(v) = ctcp.get::<String>("userinfo") { self.theme_colors.ctcp_userinfo = v; }
+                        if let Ok(v) = ctcp.get::<String>("source") { self.theme_colors.ctcp_source = v; }
+                    }
+                    // Czytaj default reasons
+                    if let Ok(reasons) = theme_table.get::<mlua::Table>("reasons") {
+                        if let Ok(v) = reasons.get::<String>("kick") { self.theme_colors.default_kick_reason = v; }
+                        if let Ok(v) = reasons.get::<String>("part") { self.theme_colors.default_part_reason = v; }
+                        if let Ok(v) = reasons.get::<String>("quit") { self.theme_colors.default_quit_reason = v; }
                     }
 
                     if let Ok(name) = theme_table.get::<String>("name") {

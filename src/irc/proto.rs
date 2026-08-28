@@ -913,7 +913,11 @@ fn handle_ctcp(app: &mut App, source: &str, buf_name: &str, content: &str, is_re
         }
         "VERSION" => {
             if app.settings.get_bool("CTCP_REPLY") {
-                let version = app.settings.get("CTCP_VERSION");
+                let version = if !app.theme_colors.ctcp_version.is_empty() {
+                    &app.theme_colors.ctcp_version
+                } else {
+                    app.settings.get("CTCP_VERSION")
+                };
                 if let Some(s) = &app.server().sender {
                     let _ = s.send(Command::NOTICE(
                         source.to_string(),
