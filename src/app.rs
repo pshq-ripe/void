@@ -466,6 +466,23 @@ pub struct ThemeColors {
     pub nick_list_bg: Color,
     // Dynamic nick palette
     pub nick_colors: Vec<Color>,
+    // Format strings (LiCe5 compatibility)
+    pub status_format: String,
+    pub status_format1: String,
+    pub status_format2: String,
+    pub input_prompt: String,
+    // Event formats
+    pub fmt_join: String,
+    pub fmt_part: String,
+    pub fmt_quit: String,
+    pub fmt_kick: String,
+    pub fmt_nick: String,
+    pub fmt_mode: String,
+    pub fmt_topic: String,
+    pub fmt_msg: String,
+    pub fmt_notice: String,
+    pub fmt_action: String,
+    pub fmt_public: String,
 }
 
 impl Default for ThemeColors {
@@ -528,6 +545,22 @@ impl Default for ThemeColors {
                 Color::Rgb(235, 160, 172), // Maroon
                 Color::Rgb(166, 209, 137), // Olive/LightGreen
             ],
+            // Format strings (LiCe5 compatible)
+            status_format: "%T %N%# %@%C%+ %W %A %H%B %F %Q%M".into(),
+            status_format1: "%T %N%# %@%=%C%+ %S %>%Q %M".into(),
+            status_format2: "[Win: %W%R%F] %L %H%B".into(),
+            input_prompt: "> ".into(),
+            fmt_join: "* $0 has joined $1".into(),
+            fmt_part: "* $0 has left $1 ($2)".into(),
+            fmt_quit: "* $0 has quit IRC ($1)".into(),
+            fmt_kick: "* $0 was kicked from $1 by $2 ($3)".into(),
+            fmt_nick: "* $0 is now known as $1".into(),
+            fmt_mode: "* $0 sets mode: $1".into(),
+            fmt_topic: "* $0 set topic to: $1".into(),
+            fmt_msg: "<$0> $1".into(),
+            fmt_notice: "-$0- $1".into(),
+            fmt_action: "* $0 $1".into(),
+            fmt_public: "<$0> $1".into(),
         }
     }
 }
@@ -1196,6 +1229,25 @@ impl App {
                         if !colors.is_empty() {
                             self.theme_colors.nick_colors = colors;
                         }
+                    }
+
+                    // Czytaj format strings
+                    if let Ok(fmts) = theme_table.get::<mlua::Table>("formats") {
+                        if let Ok(v) = fmts.get::<String>("status_format") { self.theme_colors.status_format = v; }
+                        if let Ok(v) = fmts.get::<String>("status_format1") { self.theme_colors.status_format1 = v; }
+                        if let Ok(v) = fmts.get::<String>("status_format2") { self.theme_colors.status_format2 = v; }
+                        if let Ok(v) = fmts.get::<String>("input_prompt") { self.theme_colors.input_prompt = v; }
+                        if let Ok(v) = fmts.get::<String>("join") { self.theme_colors.fmt_join = v; }
+                        if let Ok(v) = fmts.get::<String>("part") { self.theme_colors.fmt_part = v; }
+                        if let Ok(v) = fmts.get::<String>("quit") { self.theme_colors.fmt_quit = v; }
+                        if let Ok(v) = fmts.get::<String>("kick") { self.theme_colors.fmt_kick = v; }
+                        if let Ok(v) = fmts.get::<String>("nick") { self.theme_colors.fmt_nick = v; }
+                        if let Ok(v) = fmts.get::<String>("mode") { self.theme_colors.fmt_mode = v; }
+                        if let Ok(v) = fmts.get::<String>("topic") { self.theme_colors.fmt_topic = v; }
+                        if let Ok(v) = fmts.get::<String>("msg") { self.theme_colors.fmt_msg = v; }
+                        if let Ok(v) = fmts.get::<String>("notice") { self.theme_colors.fmt_notice = v; }
+                        if let Ok(v) = fmts.get::<String>("action") { self.theme_colors.fmt_action = v; }
+                        if let Ok(v) = fmts.get::<String>("public") { self.theme_colors.fmt_public = v; }
                     }
 
                     if let Ok(name) = theme_table.get::<String>("name") {
