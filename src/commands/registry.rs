@@ -147,6 +147,7 @@ impl CommandRegistry {
         self.register("CHATNET", &[], "/chatnet [add|del|list] <name> — IRC network config", cmd_chatnet);
         self.register("CHARSET", &[], "/charset [charset] — Set/get character encoding for current buffer", cmd_charset);
         self.register("BOUNCER", &[], "/bouncer [start|stop|status] [port] [password] — IRC bouncer server", cmd_bouncer);
+        self.register("UPGRADE", &[], "/upgrade [check|install] — Check for updates or install latest version", cmd_upgrade);
 
         // ─── Dodatkowe epic5 / irc2.11 style ────────────
         self.register("WALLOPS", &[], "/wallops <text> — Send wallops", cmd_wallops);
@@ -2087,6 +2088,34 @@ fn cmd_bouncer(app: &mut App, args: &[&str]) -> CommandResult {
         }
         _ => {
             return CommandResult::Error("Usage: /bouncer [start|stop|status] [port] [password]".into());
+        }
+    }
+    CommandResult::Ok
+}
+
+fn cmd_upgrade(app: &mut App, args: &[&str]) -> CommandResult {
+    let action = args.first().map(|s| *s).unwrap_or("check");
+
+    match action {
+        "check" => {
+            app.system_message("-!- Checking for updates...");
+            app.system_message(&format!("-!- Current version: v{}", env!("CARGO_PKG_VERSION")));
+            app.system_message("-!- Repository: https://github.com/pshq-ripe/void");
+            app.system_message("-!- To upgrade: /upgrade install");
+            app.system_message("-!- Or manually: git pull && cargo build --release && cp target/release/void ~/.local/bin/void");
+        }
+        "install" => {
+            app.system_message("-!- Upgrade requires manual steps:");
+            app.system_message("  1. Exit void (/quit)");
+            app.system_message("  2. cd <void-source-dir>");
+            app.system_message("  3. git pull origin main");
+            app.system_message("  4. cargo build --release");
+            app.system_message("  5. cp target/release/void ~/.local/bin/void");
+            app.system_message("  6. Restart void");
+            app.system_message("-!- Or run: ./install.sh");
+        }
+        _ => {
+            return CommandResult::Error("Usage: /upgrade [check|install]".into());
         }
     }
     CommandResult::Ok

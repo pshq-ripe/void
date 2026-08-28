@@ -228,6 +228,22 @@ The input prompt shows context:
 - **~/.void/void.db** — SQLCipher encrypted SQLite database
 - **~/.void/void.conf** — Text backup of settings
 
+## Upgrading
+
+```bash
+# From source directory
+./install.sh
+
+# Or manually
+git pull origin main
+cargo build --release
+cp target/release/void ~/.local/bin/void
+
+# From inside void
+/upgrade check
+/upgrade install
+```
+
 ## Building
 
 ```bash
