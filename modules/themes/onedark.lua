@@ -59,4 +59,29 @@ void_themes.register("OneDark", {
         "#e06c75", -- Red
         "#be5046", -- Dark Red
     },
+    formats = {
+        status_format = "%T %N%# %@%C%+ %W %A %H%B %F %Q%M",
+        input_prompt = "> ",
+        join = "* $0 has joined $1",
+        part = "* $0 has left $1 ($2)",
+        quit = "* $0 has quit IRC ($1)",
+        kick = "* $0 was kicked from $1 by $2 ($3)",
+        nick = "* $0 is now known as $1",
+        mode = "* $0 sets mode: $1",
+        topic = "* $0 set topic to: $1",
+        msg = "<$0> $1",
+        notice = "-$0- $1",
+        action = "* $0 $1",
+        public = "<$0> $1",
+    },
+    ctcp = {
+        version = "Void IRC Client v0.3.0 (Rust)",
+        userinfo = "Void IRC Client",
+        source = "https://github.com/pshq-ripe/void",
+    },
+    reasons = {
+        kick = "Requested",
+        part = "Leaving",
+        quit = "Leaving",
+    },
 })
