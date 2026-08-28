@@ -329,9 +329,13 @@ pub fn handle_irc_message(app: &mut App, msg: &Message) {
                     mode_str.push(' ');
                     mode_str.push_str(arg);
                     // Aktualizuj prefix nicka na liście
+                    // Jeśli nick nie jest na liście, dodaj go (auto-op na pustym kanale)
                     match m {
                         Mode::Plus(ChannelMode::Oper, _) => {
                             if let Some(buf) = app.get_buffer_mut(channel) {
+                                if !buf.nicks.iter().any(|n| n.nick == arg) {
+                                    buf.add_nick(arg);
+                                }
                                 buf.set_nick_prefix(arg, '@', true);
                             }
                         }
