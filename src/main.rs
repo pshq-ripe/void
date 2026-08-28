@@ -592,10 +592,8 @@ async fn main() -> Result<()> {
         }
     }
 
-    // ─── Zapisz stan do SQLite (z timeoutem) ──────────
-    let _ = std::thread::spawn(|| {
-        app.save_to_db();
-    }).join();
+    // ─── Zapisz stan do SQLite ────────────────────────
+    app.save_to_db();
 
     // ─── Cleanup (ignoruj błędy) ─────────────────────
     let _ = execute!(std::io::stdout(), crossterm::event::DisableMouseCapture);
