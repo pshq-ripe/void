@@ -80,6 +80,36 @@ void -c irc.example.com -n mynick --proxy-type socks5 --proxy-server 127.0.0.1 -
 | `--ipv6` | Force IPv6 |
 | `--db-pass` | Database encryption passphrase |
 
+## Command Aliases
+
+| Command | Aliases |
+|---------|---------|
+| `/server` | `/connect`, `/serv` |
+| `/disconnect` | `/discon`, `/dc` |
+| `/reconnect` | `/rc` |
+| `/quit` | `/exit`, `/bye`, `/q` |
+| `/join` | `/j` |
+| `/part` | `/leave`, `/l` |
+| `/topic` | `/t` |
+| `/names` | `/n` |
+| `/kick` | `/k` |
+| `/mode` | `/m` |
+| `/invite` | `/inv` |
+| `/ban` | `/b` |
+| `/unban` | `/ub` |
+| `/kickban` | `/kb` |
+| `/voice` | `/v` |
+| `/devoice` | `/dv` |
+| `/msg` | `/m` |
+| `/me` | `/describe`, `/action` |
+| `/notice` | `/n` |
+| `/query` | `/q` |
+| `/whois` | `/wi` |
+| `/window` | `/w`, `/wc` |
+| `/clear` | `/cls` |
+| `/lastlog` | `/ll` |
+| `/highlight` | `/hilight` |
+
 ## Modules (LiCe5 Compatibility)
 
 Load all modules: `/load modules/init.lua`

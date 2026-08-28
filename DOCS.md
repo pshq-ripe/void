@@ -400,13 +400,13 @@ All commands are case-insensitive. Commands prefixed with `/` are entered in the
 
 | Command | Aliases | Syntax | Description |
 |---|---|---|---|
-| `/server` | `/connect` | `/server <host> [port] [pass]` | Connect to an IRC server |
+| `/server` | `/connect`, `/serv` | `/server <host> [port] [pass]` | Connect to an IRC server |
 | `/server` | | `/server` | List all server connections |
 | `/server` | | `/server -m <host> [port]` | Add a new server connection (multi-server) |
 | `/server` | | `/server <index>` | Switch to server by index |
-| `/disconnect` | `/discon` | `/disconnect` | Disconnect from current server |
-| `/reconnect` | | `/reconnect` | Reconnect to the last server |
-| `/quit` | `/exit`, `/bye` | `/quit [reason]` | Quit the client with optional reason |
+| `/disconnect` | `/discon`, `/dc` | `/disconnect` | Disconnect from current server |
+| `/reconnect` | `/rc` | `/reconnect` | Reconnect to the last server |
+| `/quit` | `/exit`, `/bye`, `/q` | `/quit [reason]` | Quit the client with optional reason |
 | `/nick` | | `/nick <newnick>` | Change your nickname |
 | `/away` | | `/away [message]` | Set yourself as away (or return if no message) |
 | `/whois` | `/wi` | `/whois <nick>` | Query detailed user information |
@@ -432,12 +432,12 @@ All commands are case-insensitive. Commands prefixed with `/` are entered in the
 | Command | Aliases | Syntax | Description |
 |---|---|---|---|
 | `/join` | `/j` | `/join <#channel> [key]` | Join a channel (with optional key) |
-| `/part` | `/leave` | `/part [#channel] [reason]` | Leave a channel |
+| `/part` | `/leave`, `/l` | `/part [#channel] [reason]` | Leave a channel |
 | `/topic` | `/t` | `/topic [text]` | View or set the channel topic |
-| `/names` | | `/names [#channel]` | List users in a channel |
+| `/names` | `/n` | `/names [#channel]` | List users in a channel |
 | `/kick` | `/k` | `/kick <nick> [reason]` | Kick a user from the channel |
-| `/mode` | | `/mode <target> <modes> [args]` | Set channel or user modes |
-| `/invite` | | `/invite <nick> <#channel>` | Invite a user to a channel |
+| `/mode` | `/m` | `/mode <target> <modes> [args]` | Set channel or user modes |
+| `/invite` | `/inv` | `/invite <nick> <#channel>` | Invite a user to a channel |
 | `/ban` | `/b` | `/ban <nick\|mask>` | Ban a user from the channel |
 | `/unban` | `/ub` | `/unban <nick\|mask>` | Remove a ban |
 | `/kickban` | `/kb` | `/kickban <nick> [reason]` | Ban and kick a user |
@@ -472,8 +472,8 @@ All commands are case-insensitive. Commands prefixed with `/` are entered in the
 | Command | Aliases | Syntax | Description |
 |---|---|---|---|
 | `/msg` | `/m` | `/msg <target> <text>` | Send a private message |
-| `/me` | `/describe` | `/me <action>` | Send an action message |
-| `/notice` | | `/notice <target> <text>` | Send a notice |
+| `/me` | `/describe`, `/action` | `/me <action>` | Send an action message |
+| `/notice` | `/n` | `/notice <target> <text>` | Send a notice |
 | `/say` | | `/say <text>` | Send text to the current channel |
 | `/query` | `/q` | `/query <nick>` | Open a query (private message) window |
 | `/ctcp` | | `/ctcp <nick> <type> [args]` | Send a CTCP request |
