@@ -45,19 +45,19 @@ impl CommandRegistry {
 
     fn register_builtins(&mut self) {
         // ─── Połączenia ───────────────────────────────────
-        self.register("SERVER", &["connect"], "/server <host> [port] [pass] — Connect to IRC server", cmd_server);
-        self.register("DISCONNECT", &["discon"], "/disconnect — Disconnect from server", cmd_disconnect);
-        self.register("RECONNECT", &[], "/reconnect — Reconnect to last server", cmd_reconnect);
-        self.register("QUIT", &["exit", "bye"], "/quit [reason] — Quit", cmd_quit);
+        self.register("SERVER", &["connect", "serv"], "/server <host> [port] [pass] — Connect to IRC server", cmd_server);
+        self.register("DISCONNECT", &["discon", "dc"], "/disconnect — Disconnect from server", cmd_disconnect);
+        self.register("RECONNECT", &["rc"], "/reconnect — Reconnect to last server", cmd_reconnect);
+        self.register("QUIT", &["exit", "bye", "q"], "/quit [reason] — Quit", cmd_quit);
 
         // ─── Kanały ──────────────────────────────────────
         self.register("JOIN", &["j"], "/join <#channel> [key] — Join channel", cmd_join);
-        self.register("PART", &["leave"], "/part [#channel] [reason] — Leave channel", cmd_part);
+        self.register("PART", &["leave", "l"], "/part [#channel] [reason] — Leave channel", cmd_part);
         self.register("TOPIC", &["t"], "/topic [text] — View/set topic", cmd_topic);
-        self.register("NAMES", &[], "/names [#channel] — List users", cmd_names);
+        self.register("NAMES", &["n"], "/names [#channel] — List users", cmd_names);
         self.register("KICK", &["k"], "/kick <nick> [reason] — Kick user", cmd_kick);
-        self.register("MODE", &[], "/mode <target> <modes> — Set modes", cmd_mode);
-        self.register("INVITE", &[], "/invite <nick> <#channel> — Invite user", cmd_invite);
+        self.register("MODE", &["m"], "/mode <target> <modes> — Set modes", cmd_mode);
+        self.register("INVITE", &["inv"], "/invite <nick> <#channel> — Invite user", cmd_invite);
         self.register("BAN", &["b"], "/ban <nick|mask> — Ban user from channel", cmd_ban);
         self.register("UNBAN", &["ub"], "/unban <nick|mask> — Remove ban", cmd_unban);
         self.register("KICKBAN", &["kb"], "/kickban <nick> [reason] — Kick and ban", cmd_kickban);
@@ -68,8 +68,8 @@ impl CommandRegistry {
 
         // ─── Wiadomości ──────────────────────────────────
         self.register("MSG", &["m"], "/msg <target> <text> — Send private message", cmd_msg);
-        self.register("ME", &["describe"], "/me <action> — Send action", cmd_me);
-        self.register("NOTICE", &[], "/notice <target> <text> — Send notice", cmd_notice);
+        self.register("ME", &["describe", "action"], "/me <action> — Send action", cmd_me);
+        self.register("NOTICE", &["n"], "/notice <target> <text> — Send notice", cmd_notice);
         self.register("SAY", &[], "/say <text> — Say text on channel", cmd_say);
         self.register("QUERY", &["q"], "/query <nick> — Open query window", cmd_query);
         self.register("CTCP", &[], "/ctcp <nick> <type> — Send CTCP", cmd_ctcp);
