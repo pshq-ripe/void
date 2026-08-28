@@ -121,3 +121,108 @@ lice5.load("stubs")           -- Stub functions
 local count = 0
 for _ in pairs(lice5.loaded) do count = count + 1 end
 void.echo("-!- LiCe5 v" .. lice5.version .. " loaded (" .. count .. " modules)")
+
+-- Module info registry
+lice5.module_info = {
+    ignore = {desc = "Enhanced ignore with patterns, timeouts, /ON hooks", cmds = "/ig, /ignore"},
+    gone = {desc = "Away/back system with random reasons from files", cmds = "/gone, /back, /autoaway"},
+    kick = {desc = "Enhanced kick/kickban with random reasons", cmds = "/k, /kb, /rk"},
+    mass = {desc = "Mass op/deop/voice/kick/ban commands", cmds = "/massop, /massdeop, /massvoice, /massdevoice, /masskick, /massban"},
+    userlist = {desc = "Bot-style auto-op/voice with access levels", cmds = "/ul, /userlist"},
+    alarm = {desc = "Timer/reminder system with named alarms", cmds = "/alarm"},
+    reconnect = {desc = "Auto-reconnect with channel rejoin tracking", cmds = "/reconnect, /rejoin"},
+    paste = {desc = "Multi-line paste mode", cmds = "/paste"},
+    logman = {desc = "Per-channel log management", cmds = "/logman"},
+    autovoice = {desc = "Auto-voice on join", cmds = "/autovoice"},
+    anti_flood = {desc = "Anti-flood protection", cmds = "/antiflood"},
+    highlight = {desc = "Nick/pattern highlight with colors", cmds = "/lice_highlight"},
+    ctcp = {desc = "Enhanced CTCP replies (VERSION, PING, TIME, CLIENTINFO)", cmds = "(hooks)"},
+    nickserv = {desc = "NickServ auto-identify + ghost + recover", cmds = "/ns, /nickserv"},
+    channel_protect = {desc = "Anti-kick, anti-deop protection", cmds = "/protect"},
+    invite = {desc = "Invite tracking, accept/reject", cmds = "/invlist"},
+    dns = {desc = "DNS lookup command", cmds = "/dns"},
+    signoff = {desc = "Random quit messages from quit.reasons", cmds = "/signoff"},
+    wall = {desc = "Broadcast to channels", cmds = "/wall"},
+    finger = {desc = "User info lookup", cmds = "/finger"},
+    memo = {desc = "Offline memo system", cmds = "/memo"},
+    note = {desc = "Quick notes and reminders", cmds = "/note"},
+    party = {desc = "Party mode with disco colors and dance moves", cmds = "/party, /disco, /dance"},
+    sensors = {desc = "Channel activity monitoring", cmds = "/sensors"},
+    help = {desc = "Enhanced help with categories", cmds = "/lice_help"},
+    banlist = {desc = "Ban list management", cmds = "/banlist"},
+    exclist = {desc = "Exception list management", cmds = "/exclist"},
+    invlist = {desc = "Invite exception list", cmds = "/invexlist"},
+    joinlist = {desc = "Join tracking / clone detection", cmds = "/joinlist"},
+    serverignore = {desc = "Server-level ignore (SILENCE)", cmds = "/silence"},
+    play = {desc = "Log replay", cmds = "/play"},
+    chanlog = {desc = "Per-channel logging setup", cmds = "/chanlog"},
+    news = {desc = "News system", cmds = "/news"},
+    update = {desc = "Update checker", cmds = "/update"},
+    oops = {desc = "Quick fix last message", cmds = "/oops"},
+    splitlist = {desc = "Netsplit tracking", cmds = "/splitlist"},
+    show_list = {desc = "Unified list display", cmds = "/showlist"},
+    remove_list = {desc = "Unified list removal", cmds = "/rmlist"},
+    refriend = {desc = "Quick friend management", cmds = "/refriend"},
+    rel = {desc = "Relationship tracking", cmds = "/rel"},
+    noig = {desc = "No-ignore whitelist", cmds = "/noig"},
+    pager = {desc = "In-client file pager", cmds = "/pager"},
+    wget = {desc = "URL fetch", cmds = "/wget"},
+    trans = {desc = "Translation helper", cmds = "/trans"},
+    define = {desc = "Dictionary lookup", cmds = "/define"},
+    sc = {desc = "Screen/tmux integration", cmds = "/sc"},
+    mk = {desc = "File creation helper", cmds = "/mk"},
+    mme = {desc = "Mass message to targets", cmds = "/mme"},
+    msay = {desc = "Multi-target say", cmds = "/msay"},
+    mtog = {desc = "Message toggle", cmds = "/mtog"},
+    ctog = {desc = "Channel feature toggle", cmds = "/ctog"},
+    dtog = {desc = "Display feature toggle", cmds = "/dtog"},
+    wtog = {desc = "Window feature toggle", cmds = "/wtog"},
+    tog = {desc = "Generic toggle", cmds = "/tog"},
+    dom = {desc = "Domain operations", cmds = "/dom"},
+    dump = {desc = "Debug dump", cmds = "/dump"},
+    ul_save = {desc = "Userlist save/load", cmds = "/ulsave"},
+    ulw = {desc = "Userlist window commands", cmds = "/ulw_*"},
+    tab_comp = {desc = "Tab completion enhancement", cmds = "/tabcomp"},
+    bword = {desc = "Word manipulation utilities", cmds = "/bword"},
+    binds = {desc = "Key binding management", cmds = "/binds"},
+    defaults = {desc = "Default settings display", cmds = "/defaults"},
+    imail = {desc = "Internal mail system", cmds = "/imail"},
+    floodlist = {desc = "Flood protection exceptions", cmds = "/floodlist"},
+    looplist = {desc = "Loop through lists", cmds = "/looplist"},
+    pic = {desc = "ASCII art pictures", cmds = "/pic"},
+    ppl = {desc = "People tracking", cmds = "/ppl"},
+    chanst = {desc = "Channel status", cmds = "/chanst"},
+    cwho = {desc = "Channel WHO", cmds = "/cwho"},
+    et = {desc = "Enhanced topic", cmds = "/et"},
+    db = {desc = "Key-value database", cmds = "/db"},
+    fkeys = {desc = "Function key bindings", cmds = "/fkey"},
+    boot = {desc = "Boot sequence", cmds = "/boot"},
+    stubs = {desc = "DCC stubs (adcc, dcclist, rdcc, redcc)", cmds = "/adcc, /dcclist, /rdcc, /redcc"},
+}
+
+-- /module command — show module info
+void.register_command("MODULE", "lice5_cmd_module")
+function lice5_cmd_module(args)
+    if #args == 0 then
+        void.echo("-!- Loaded modules:")
+        for name, _ in pairs(lice5.loaded) do
+            local info = lice5.module_info[name]
+            if info then
+                void.echo("  " .. name .. " — " .. info.desc)
+            else
+                void.echo("  " .. name)
+            end
+        end
+        void.echo("-!- Use /module <name> for details")
+        return
+    end
+    local name = args[1]:lower()
+    local info = lice5.module_info[name]
+    if info then
+        void.echo("-!- Module: " .. name)
+        void.echo("  Description: " .. info.desc)
+        void.echo("  Commands: " .. info.cmds)
+    else
+        void.echo("-!- Unknown module: " .. name)
+    end
+end

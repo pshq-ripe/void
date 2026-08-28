@@ -599,12 +599,10 @@ async fn main() -> Result<()> {
     if app.settings.get_bool("MOUSE") {
         let _ = execute!(std::io::stdout(), crossterm::event::DisableMouseCapture);
     }
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen
-    )?;
-    terminal.show_cursor()?;
+    let _ = disable_raw_mode();
+    let _ = execute!(terminal.backend_mut(), LeaveAlternateScreen);
+    let _ = terminal.show_cursor();
 
-    Ok(())
+    // Wymuś zakończenie procesu (tokio runtime może nie zakończyć się czysto)
+    std::process::exit(0);
 }
