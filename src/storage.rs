@@ -8,7 +8,6 @@ pub struct Storage {
 
 impl Storage {
     /// Otwórz lub utwórz zaszyfrowaną bazę danych
-    /// passphrase: klucz szyfrowania (AES-256 via SQLCipher)
     pub fn open(path: &str, passphrase: &str) -> SqlResult<Self> {
         let db_path = if path.starts_with("~/") {
             let home = std::env::var("HOME").unwrap_or_default();
@@ -22,9 +21,6 @@ impl Storage {
         }
 
         let conn = Connection::open(&db_path)?;
-
-        // SQLCipher: ustaw klucz szyfrowania
-        // To musi być pierwszą operacją po otwarciu połączenia
         conn.execute_batch(&format!("PRAGMA key = '{}';", passphrase.replace('\'', "''")))?;
 
         let storage = Storage { conn };
@@ -70,6 +66,22 @@ impl Storage {
         Ok(())
     }
 
+    // Helper: prepare and query, returning Vec<T>
+    fn query_vec<F, T>(&self, sql: &str, map_fn: F) -> Vec<T>
+    where
+        F: Fn(&rusqlite::Row) -> rusqlite::Result<T>,
+    {
+        let mut stmt = match self.conn.prepare(sql) {
+            Ok(s) => s,
+            Err(_) => return Vec::new(),
+        };
+        let rows = match stmt.query_map([], |row| map_fn(row)) {
+            Ok(r) => r,
+            Err(_) => return Vec::new(),
+        };
+        rows.filter_map(|r| r.ok()).collect()
+    }
+
     // ─── Settings ────────────────────────────────────
 
     pub fn get_setting(&self, key: &str) -> Option<String> {
@@ -89,10 +101,10 @@ impl Storage {
     }
 
     pub fn get_all_settings(&self) -> Vec<(String, String)> {
-        let mut stmt = self.conn.prepare("SELECT key, value FROM settings ORDER BY key").unwrap();
-        stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        }).unwrap().filter_map(|r| r.ok()).collect()
+        self.query_vec(
+            "SELECT key, value FROM settings ORDER BY key",
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
     }
 
     // ─── Aliases ─────────────────────────────────────
@@ -119,10 +131,10 @@ impl Storage {
     }
 
     pub fn get_all_aliases(&self) -> Vec<(String, String)> {
-        let mut stmt = self.conn.prepare("SELECT name, body FROM aliases ORDER BY name").unwrap();
-        stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        }).unwrap().filter_map(|r| r.ok()).collect()
+        self.query_vec(
+            "SELECT name, body FROM aliases ORDER BY name",
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
     }
 
     // ─── Highlights ──────────────────────────────────
@@ -141,10 +153,10 @@ impl Storage {
     }
 
     pub fn get_all_highlights(&self) -> Vec<(String, String)> {
-        let mut stmt = self.conn.prepare("SELECT pattern, color FROM highlights").unwrap();
-        stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        }).unwrap().filter_map(|r| r.ok()).collect()
+        self.query_vec(
+            "SELECT pattern, color FROM highlights",
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
     }
 
     // ─── Key Bindings ────────────────────────────────
@@ -163,10 +175,10 @@ impl Storage {
     }
 
     pub fn get_all_key_bindings(&self) -> Vec<(String, String)> {
-        let mut stmt = self.conn.prepare("SELECT key, action FROM key_bindings").unwrap();
-        stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        }).unwrap().filter_map(|r| r.ok()).collect()
+        self.query_vec(
+            "SELECT key, action FROM key_bindings",
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
     }
 
     // ─── Servers ─────────────────────────────────────
@@ -196,15 +208,15 @@ impl Storage {
     }
 
     pub fn get_all_servers(&self) -> Vec<(String, u16, bool, String)> {
-        let mut stmt = self.conn.prepare("SELECT host, port, tls, nick FROM servers ORDER BY host").unwrap();
-        stmt.query_map([], |row| {
-            Ok((
+        self.query_vec(
+            "SELECT host, port, tls, nick FROM servers ORDER BY host",
+            |row| Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, u16>(1)?,
                 row.get::<_, i32>(2)? != 0,
                 row.get::<_, String>(3).unwrap_or_default(),
-            ))
-        }).unwrap().filter_map(|r| r.ok()).collect()
+            )),
+        )
     }
 
     // ─── Notify List ─────────────────────────────────
@@ -220,8 +232,10 @@ impl Storage {
     }
 
     pub fn get_all_notify(&self) -> Vec<String> {
-        let mut stmt = self.conn.prepare("SELECT nick FROM notify_list ORDER BY nick").unwrap();
-        stmt.query_map([], |row| row.get::<_, String>(0)).unwrap().filter_map(|r| r.ok()).collect()
+        self.query_vec(
+            "SELECT nick FROM notify_list ORDER BY nick",
+            |row| row.get::<_, String>(0),
+        )
     }
 
     // ─── Ignore List ─────────────────────────────────
@@ -240,10 +254,10 @@ impl Storage {
     }
 
     pub fn get_all_ignore(&self) -> Vec<(String, String)> {
-        let mut stmt = self.conn.prepare("SELECT pattern, flags FROM ignore_list").unwrap();
-        stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        }).unwrap().filter_map(|r| r.ok()).collect()
+        self.query_vec(
+            "SELECT pattern, flags FROM ignore_list",
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
     }
 
     // ─── Session save/restore ─────────────────────────
@@ -270,15 +284,15 @@ impl Storage {
     }
 
     pub fn get_session_buffers(&self) -> Vec<(String, String, String, bool)> {
-        let mut stmt = self.conn.prepare("SELECT name, server_host, channel, auto_join FROM session_buffers ORDER BY id").unwrap();
-        stmt.query_map([], |row| {
-            Ok((
+        self.query_vec(
+            "SELECT name, server_host, channel, auto_join FROM session_buffers ORDER BY id",
+            |row| Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
                 row.get::<_, i32>(3)? != 0,
-            ))
-        }).unwrap().filter_map(|r| r.ok()).collect()
+            )),
+        )
     }
 
     pub fn clear_session_buffers(&self) -> SqlResult<()> {
@@ -312,13 +326,13 @@ impl Storage {
     }
 
     pub fn get_window_layout(&self) -> Vec<(String, Option<usize>, bool)> {
-        let mut stmt = self.conn.prepare("SELECT name, split_idx, split_horizontal FROM window_layout ORDER BY idx").unwrap();
-        stmt.query_map([], |row| {
-            Ok((
+        self.query_vec(
+            "SELECT name, split_idx, split_horizontal FROM window_layout ORDER BY idx",
+            |row| Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, Option<i32>>(1)?.map(|s| s as usize),
                 row.get::<_, i32>(2)? != 0,
-            ))
-        }).unwrap().filter_map(|r| r.ok()).collect()
+            )),
+        )
     }
 }
