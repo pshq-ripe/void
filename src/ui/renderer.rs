@@ -317,8 +317,12 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
             };
 
             if show_timestamps {
+                let ts_format = settings.get("TIMESTAMP_FORMAT");
+                let ts_str = chrono::DateTime::from_timestamp(m.timestamp, 0)
+                    .map(|dt| dt.with_timezone(&chrono::Local).format(ts_format).to_string())
+                    .unwrap_or_default();
                 let mut line_spans = vec![
-                    Span::styled(format!("[{}] ", m.timestamp), Style::default().fg(theme.timestamp)),
+                    Span::styled(format!("[{}] ", ts_str), Style::default().fg(theme.timestamp)),
                 ];
                 line_spans.extend(msg_spans);
                 Line::from(line_spans)
@@ -666,9 +670,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             Span::styled(prompt, Style::default().fg(app.theme_colors.input_prompt_fg).add_modifier(Modifier::BOLD)),
             Span::styled(&app.input_text, Style::default().fg(app.theme_colors.input_fg)),
         ];
-        let mut input_block_widget = Block::default()
-            .borders(Borders::TOP)
-            .border_style(Style::default().fg(app.theme_colors.border));
+        let mut input_block_widget = Block::default();
         if app.theme_colors.input_bg != Color::Reset {
             input_block_widget = input_block_widget.style(Style::default().bg(app.theme_colors.input_bg));
         }

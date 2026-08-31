@@ -64,7 +64,7 @@ impl NickEntry {
 /// Wiadomość ze znacznikiem czasu i typem
 #[derive(Clone)]
 pub struct StyledMessage {
-    pub timestamp: String,
+    pub timestamp: i64,  // Unix timestamp
     pub text: String,
     pub msg_type: MessageType,
 }
@@ -97,7 +97,7 @@ impl Buffer {
     }
 
     pub fn push_message(&mut self, text: String, msg_type: MessageType, scrollback_limit: usize) {
-        let timestamp = chrono::Local::now().format("%H:%M").to_string();
+        let timestamp = chrono::Utc::now().timestamp();
         self.messages.push(StyledMessage {
             timestamp,
             text,
@@ -1123,13 +1123,13 @@ impl App {
                 "cyan" | "teal" => Color::Cyan,
                 "white" => Color::White,
                 "gray" | "grey" | "darkgray" => Color::DarkGray,
-                "lightgray" | "lightgrey" | "silver" => Color::Gray,
-                "lightred" | "brightred" => Color::LightRed,
-                "lightgreen" | "brightgreen" | "lime" => Color::LightGreen,
-                "lightyellow" | "brightyellow" => Color::LightYellow,
-                "lightblue" | "brightblue" => Color::LightBlue,
-                "lightmagenta" | "brightmagenta" | "pink" => Color::LightMagenta,
-                "lightcyan" | "brightcyan" => Color::LightCyan,
+                "light_gray" | "lightgray" | "lightgrey" | "silver" => Color::Gray,
+                "light_red" | "lightred" | "brightred" => Color::LightRed,
+                "light_green" | "lightgreen" | "brightgreen" | "lime" => Color::LightGreen,
+                "light_yellow" | "lightyellow" | "brightyellow" => Color::LightYellow,
+                "light_blue" | "lightblue" | "brightblue" => Color::LightBlue,
+                "light_magenta" | "lightmagenta" | "brightmagenta" | "pink" => Color::LightMagenta,
+                "light_cyan" | "lightcyan" | "brightcyan" => Color::LightCyan,
 
                 // Extended named dark and accent colors
                 "darkred" => Color::Rgb(139, 0, 0),
