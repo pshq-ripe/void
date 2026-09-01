@@ -1,41 +1,57 @@
-math.randomseed(os.time())
+-- ==============================================================================
+-- VOID IRC CLIENT — Configuration
+-- ==============================================================================
 
+-- 1. GŁÓWNA KONFIGURACJA
 config = {
     nickname = "void_" .. tostring(math.random(100, 999)),
+    altnick = "void_" .. tostring(math.random(1000, 9999)),
     server = "irc.spadhausen.com",
-    channels = {}
+    port = 6697,
+    tls = true,
+    sasl = "",
+    realname = "Void IRC Client",
+    channels = {},
 }
 
--- LiCe5 compatibility layer (modules/)
-dofile("modules/init.lua")
+-- 2. WYBÓR AKTYWNEGO MODUŁU (zmień na inny folder, gdy zajdzie potrzeba)
+-- Wpisz "lice" aby załadować modules/lice/
+-- Wpisz "dupa" aby załadować modules/dupa/
+-- Wpisz "" aby nie ładować żadnego modułu
+load_module = "lice"
 
--- Custom quit reasons (LiCe style)
-local quit_reasons = {
-    "Leaving",
-    "Connection reset by peer",
-    "Ping timeout: 240 seconds",
-    "Segmentation fault (core dumped)",
-    "Ctrl+C",
-    "Gone to lunch",
-    "BRB",
-}
+-- 3. SILNIK ROUTINGU ŚCIEŻEK (obsługa podfolderów modułów)
+local home = os.getenv("HOME") or os.getenv("USERPROFILE")
+local base_dir = home .. "/.void/modules/" .. load_module .. "/"
 
-function get_quit_message()
-    return quit_reasons[math.random(1, #quit_reasons)]
+-- Funkcja pomocnicza przekierowująca "modules/" do wybranego load_module
+local function route_to_module(path)
+    if path:sub(1, 8) == "modules/" then
+        return base_dir .. path:sub(9)
+    end
+    return path
 end
 
--- Example: custom command via Lua
-void.register_command("HELLO", "cmd_hello")
-function cmd_hello(args)
-    void.echo("Hello, " .. (args[1] or "world") .. "! I am " .. void.nick())
+-- Nadpisanie globalnej funkcji dofile
+local original_dofile = dofile
+dofile = function(path)
+    return original_dofile(route_to_module(path))
 end
 
--- Example: on-join hook
-void.on("JOIN", "on_join_example")
-function on_join_example(args)
-    local nick = args[1] or ""
-    local channel = args[2] or ""
-    if nick ~= void.nick() then
-        void.echo("-!- Welcome to " .. channel .. ", " .. nick .. "!")
+-- Nadpisanie globalnej funkcji loadfile
+local original_loadfile = loadfile
+loadfile = function(path)
+    return original_loadfile(route_to_module(path))
+end
+
+-- 4. ŁADOWANIE MODUŁU (jeśli wybrany)
+if load_module and load_module ~= "" then
+    local init_path = base_dir .. "init.lua"
+    local f = io.open(init_path, "r")
+    if f then
+        f:close()
+        dofile(init_path)
+    else
+        void.echo("-!- Module not found: " .. load_module .. " (" .. init_path .. ")")
     end
 end

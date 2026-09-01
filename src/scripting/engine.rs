@@ -14,6 +14,7 @@ pub fn load_scripts(lua: &Lua) {
     let void_dir = std::path::PathBuf::from(&home).join(".void");
 
     // Wczytaj config.lua z CWD lub ~/.void/
+    // Config.lua zawiera routing modułów (load_module = "lice")
     if let Ok(script) = std::fs::read_to_string("config.lua") {
         if let Err(e) = lua.load(&script).exec() {
             eprintln!("Error loading config.lua: {}", e);
@@ -28,9 +29,8 @@ pub fn load_scripts(lua: &Lua) {
     load_scripts_dir(lua, "scripts");
     load_scripts_dir(lua, &void_dir.join("scripts").to_string_lossy());
 
-    // Wczytaj moduły z modules/ lub ~/.void/modules/
-    load_scripts_dir(lua, "modules");
-    load_scripts_dir(lua, &void_dir.join("modules").to_string_lossy());
+    // Moduły są ładowane przez config.lua (routing: load_module = "lice")
+    // Nie ładujemy automatycznie z modules/ — to robi config.lua
 }
 
 /// Wczytaj wszystkie .lua z katalogu
