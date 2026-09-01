@@ -371,6 +371,19 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         let show_nicks = is_channel(&buf.name) && app.settings.get_bool("SHOW_NICKLIST");
         let show_statusbar = app.settings.get_bool("SHOW_STATUSBAR");
         let show_user_count = app.settings.get_bool("SHOW_USER_COUNT");
+        let show_buffer_list = app.settings.get_bool("SHOW_BUFFER_LIST");
+
+        // Główny podział: [BufferList | MainArea]
+        let buffer_list_width = if show_buffer_list { 20 } else { 0 };
+        let horizontal_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Length(buffer_list_width),
+                Constraint::Min(40),
+            ])
+            .split(area);
+
+        let main_area = if show_buffer_list { horizontal_chunks[1] } else { area };
 
         // Główny podział pionowy: [Topic] | [Chat(+Nicks)] | [StatusBar] | [Input]
         let statusbar_height = if show_statusbar { 1 } else { 0 };
@@ -383,7 +396,43 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
                 Constraint::Length(statusbar_height), // Status bar
                 Constraint::Length(3), // Input
             ])
-            .split(area);
+            .split(main_area);
+
+        // ─── Buffer list (left panel) ───────────────────
+        if show_buffer_list {
+            let mut buf_lines: Vec<Line> = Vec::new();
+            buf_lines.push(Line::from(Span::styled(
+                " Buffers ",
+                Style::default().fg(app.theme_colors.nick_list_header).add_modifier(Modifier::BOLD),
+            )));
+            for (i, buffer) in app.buffers.iter().enumerate() {
+                let is_active = i == app.current_buffer_idx;
+                let (prefix, name_style) = if is_active {
+                    ("▸ ", Style::default().fg(app.theme_colors.status_bar_active_fg).bg(app.theme_colors.status_bar_active_bg).add_modifier(Modifier::BOLD))
+                } else if buffer.has_activity {
+                    ("• ", Style::default().fg(app.theme_colors.status_bar_activity_fg))
+                } else if buffer.unread_count > 0 {
+                    ("◦ ", Style::default().fg(app.theme_colors.status_bar_info_fg))
+                } else {
+                    ("  ", Style::default().fg(app.theme_colors.status_bar_fg))
+                };
+                let display_name = if buffer.name.len() > 16 {
+                    format!("{}…", &buffer.name[..15])
+                } else {
+                    buffer.name.clone()
+                };
+                buf_lines.push(Line::from(vec![
+                    Span::styled(prefix, name_style),
+                    Span::styled(display_name, name_style),
+                ]));
+            }
+            let buf_block = Block::default()
+                .borders(Borders::RIGHT)
+                .border_style(Style::default().fg(app.theme_colors.border))
+                .style(Style::default().bg(app.theme_colors.nick_list_bg));
+            let buf_widget = Paragraph::new(buf_lines).block(buf_block);
+            f.render_widget(buf_widget, horizontal_chunks[0]);
+        }
 
         // ─── Topic bar ──────────────────────────────────
         let topic_text = if buf.topic.is_empty() {
