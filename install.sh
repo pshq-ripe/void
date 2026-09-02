@@ -4,6 +4,7 @@ set -e
 
 BINARY="target/release/void"
 INSTALL_DIR="${HOME}/.local/bin"
+VOID_DIR="${HOME}/.void"
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "=== Void IRC Client Installer ==="
@@ -11,32 +12,44 @@ echo ""
 
 # Check if git repo
 if [ -d "$REPO_DIR/.git" ]; then
-    echo "[1/4] Pulling latest changes..."
+    echo "[1/5] Pulling latest changes..."
     cd "$REPO_DIR"
     git pull origin main 2>/dev/null || echo "  (git pull skipped — not a git repo or no remote)"
 else
-    echo "[1/4] Not a git repo — building from source..."
+    echo "[1/5] Not a git repo — building from source..."
 fi
 
 # Build
-echo "[2/4] Building release..."
+echo "[2/5] Building release..."
 cd "$REPO_DIR"
 cargo build --release 2>&1 | tail -3
 
-# Install
-echo "[3/4] Installing to $INSTALL_DIR/void..."
+# Install binary
+echo "[3/5] Installing binary to $INSTALL_DIR/void..."
 mkdir -p "$INSTALL_DIR"
 cp "$BINARY" "$INSTALL_DIR/void"
 chmod +x "$INSTALL_DIR/void"
 
+# Install modules and config
+echo "[4/5] Installing modules to $VOID_DIR/..."
+mkdir -p "$VOID_DIR/modules"
+if [ -d "$REPO_DIR/modules/lice" ]; then
+    cp -r "$REPO_DIR/modules/lice" "$VOID_DIR/modules/"
+    echo "  Modules: $VOID_DIR/modules/lice/"
+fi
+if [ -f "$REPO_DIR/config.lua" ] && [ ! -f "$VOID_DIR/config.lua" ]; then
+    cp "$REPO_DIR/config.lua" "$VOID_DIR/config.lua"
+    echo "  Config:  $VOID_DIR/config.lua"
+fi
+
 # Verify
-echo "[4/4] Verifying..."
+echo "[5/5] Verifying..."
 if command -v void &>/dev/null; then
-    VERSION=$(void --version 2>/dev/null || echo "unknown")
     echo ""
     echo "=== Success ==="
     echo "  Binary:  $INSTALL_DIR/void"
-    echo "  Version: $VERSION"
+    echo "  Modules: $VOID_DIR/modules/lice/"
+    echo "  Config:  $VOID_DIR/config.lua"
     echo ""
     echo "  Run: void -c irc.example.com -n mynick"
 else
