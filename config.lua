@@ -22,7 +22,25 @@ load_module = "lice"
 
 -- 3. SILNIK ROUTINGU ŚCIEŻEK (obsługa podfolderów modułów)
 local home = os.getenv("HOME") or os.getenv("USERPROFILE")
-local base_dir = home .. "/.void/modules/" .. load_module .. "/"
+
+-- Szukaj modułów w ~/.void/modules/ lub ./modules/
+local base_dir = nil
+local candidates = {
+    home .. "/.void/modules/" .. load_module .. "/",
+    "modules/" .. load_module .. "/",
+}
+for _, dir in ipairs(candidates) do
+    local f = io.open(dir .. "init.lua", "r")
+    if f then
+        f:close()
+        base_dir = dir
+        break
+    end
+end
+
+if not base_dir then
+    base_dir = home .. "/.void/modules/" .. load_module .. "/"
+end
 
 -- Funkcja pomocnicza przekierowująca "modules/" do wybranego load_module
 local function route_to_module(path)

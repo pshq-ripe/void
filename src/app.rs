@@ -326,7 +326,7 @@ impl Settings {
         map.insert("STATUS_FORMAT".into(), " [ $N ] [ $C ] [ $T ] ".into());
         map.insert("INPUT_PROMPT".into(), "> ".into());
         map.insert("SHOW_TIMESTAMPS".into(), "ON".into());
-        map.insert("TIMESTAMP_FORMAT".into(), "%H:%M".into());
+        map.insert("TIMESTAMP_FORMAT".into(), "%H:%M:%S".into());
         map.insert("DCC_DOWNLOAD_DIR".into(), "~/dcc".into());
         map.insert("CTCP_REPLY".into(), "ON".into());
         map.insert("SSL_VERIFY".into(), "OFF".into());
