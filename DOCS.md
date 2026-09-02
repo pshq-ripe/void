@@ -1383,17 +1383,17 @@ void.echo("-!- advanced_bot.lua loaded")
 
 ## 6. Modules Guide
 
-Void ships with **82 modules** total: 25 core LiCe5-compatible Lua modules, 7 color themes, and 50 additional feature modules. Load them all at once with:
-
-```
-/load modules/init.lua
-```
-
-Or add to your `config.lua`:
+Void ships with **82 modules** total: 25 core LiCe5-compatible Lua modules, 16 color themes, and 50 additional feature modules. Modules are loaded via `config.lua`:
 
 ```lua
-dofile("modules/init.lua")
+load_module = "lice"  -- loads modules/lice/init.lua
 ```
+
+Void searches for modules in:
+1. `~/.void/modules/<name>/`
+2. `./modules/<name>/`
+
+You can create your own module set in `modules/<name>/` and set `load_module` accordingly.
 
 ### 6.1 ignore — Enhanced Ignore System
 
@@ -2572,7 +2572,7 @@ void.set("SCROLLBACK", "2000")
 
 ### 7.3 Settings Reference (`/set`)
 
-All settings are accessible via `/set <variable> <value>`. Values are case-insensitive for boolean settings (`ON`/`OFF`).
+All settings are accessible via `/set <variable> <value>`. Values are case-insensitive for boolean settings (`ON`/`OFF`). Tab completion works for setting names.
 
 #### Display Settings
 
@@ -2581,10 +2581,14 @@ All settings are accessible via `/set <variable> <value>`. Values are case-insen
 | `SCROLL_LINES` | `1` | Number of lines to scroll per step |
 | `SCROLLBACK` | `500` | Maximum scrollback buffer size per window |
 | `SHOW_TIMESTAMPS` | `ON` | Show timestamps on messages |
-| `TIMESTAMP_FORMAT` | `%H:%M` | Timestamp format (strftime) |
+| `TIMESTAMP_FORMAT` | `%H:%M:%S` | Timestamp format (strftime) |
 | `CLOCK_24HOUR` | `ON` | Use 24-hour clock format |
 | `SHOW_CHANNEL_NAMES` | `ON` | Show channel names in status bar |
 | `SHOW_STATUS_ALL` | `ON` | Show status bar for all windows |
+| `SHOW_NICKLIST` | `ON` | Show/hide nick list panel |
+| `SHOW_STATUSBAR` | `ON` | Show/hide status bar |
+| `SHOW_USER_COUNT` | `ON` | Show/hide user counts in nick list headers |
+| `SHOW_BUFFER_LIST` | `OFF` | Show/hide left buffer list (weechat-style) |
 | `STATUS_FORMAT` | ` [ $N ] [ $C ] [ $T ] ` | Status bar format template |
 | `INPUT_PROMPT` | `> ` | Input line prompt |
 | `SHOW_NICKLIST` | `ON` | Show/hide nick list panel |

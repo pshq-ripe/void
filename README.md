@@ -227,6 +227,34 @@ end
 
 ## Configuration
 
+### Module System
+
+Modules are loaded from `modules/<name>/` directory. Set `load_module` in `config.lua`:
+
+```lua
+load_module = "lice"  -- loads modules/lice/init.lua
+```
+
+Void searches for modules in:
+1. `~/.void/modules/<name>/`
+2. `./modules/<name>/`
+
+### Tab Completion
+
+Press `Tab` to complete:
+- **Commands:** `/he[TAB]` → `/help`
+- **Settings:** `/set TIMEST[TAB]` → `/set TIMESTAMP_FORMAT`
+- **Nicknames:** `wuj[TAB]` → `wujekpshq:`
+- Multiple matches shown as suggestions
+
+### Timestamp
+
+```bash
+/set TIMESTAMP_FORMAT %H:%M:%S    # with seconds (default)
+/set TIMESTAMP_FORMAT %H:%M       # without seconds
+/set TIMESTAMP_FORMAT %d.%m %H:%M # date + time
+```
+
 ## UI Customization
 
 ### Toggle Settings
@@ -237,6 +265,7 @@ end
 | `SHOW_STATUSBAR` | ON | Show/hide status bar |
 | `SHOW_USER_COUNT` | ON | Show/hide user counts in nick list headers |
 | `SHOW_TIMESTAMPS` | ON | Show/hide message timestamps |
+| `SHOW_BUFFER_LIST` | OFF | Show/hide left buffer list (weechat-style) |
 | `MOUSE` | OFF | Enable/disable mouse capture (OFF = text selection works) |
 
 Usage: `/set SHOW_NICKLIST OFF` to hide nick list, `/set SHOW_STATUSBAR OFF` to hide status bar.
