@@ -3,6 +3,7 @@ use futures_util::{sink::Sink, stream::Stream};
 use pin_project::pin_project;
 use std::{
     fmt,
+    io,
     pin::Pin,
     task::{Context, Poll},
 };
