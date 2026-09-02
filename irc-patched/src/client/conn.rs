@@ -4,6 +4,7 @@ use pin_project::pin_project;
 use std::{
     fmt,
     io,
+    net::ToSocketAddrs,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -174,7 +175,11 @@ impl Connection {
                     };
                     socket.set_reuseaddr(true)?;
                     socket.bind(local_addr)?;
-                    return Ok(socket.connect(address).await?);
+                    let connect_addr: std::net::SocketAddr = (server, port).to_socket_addrs()
+                        .map_err(|e| error::Error::Io(e))?
+                        .next()
+                        .ok_or_else(|| error::Error::Io(io::Error::new(io::ErrorKind::NotFound, "cannot resolve server")))?;
+                    return Ok(socket.connect(connect_addr).await?);
                 }
                 Ok(TcpStream::connect(address).await?)
             }
