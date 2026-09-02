@@ -149,8 +149,34 @@ impl Connection {
         let port = config.port();
         let address = (server, port);
 
+        // Vhost binding — jeśli source jest adresem IP, bind do niego
+        let source = config.source();
+        let is_ip = source.parse::<std::net::IpAddr>().is_ok();
+
         match config.proxy_type() {
-            ProxyType::None => Ok(TcpStream::connect(address).await?),
+            ProxyType::None => {
+                if is_ip {
+                    let local_addr: std::net::SocketAddr = if source.contains(':') {
+                        format!("[{}]:0", source).parse()
+                            .map_err(|_| error::Error::Io(io::Error::new(io::ErrorKind::InvalidInput, "invalid vhost address")))?
+                    } else {
+                        format!("{}:0", source).parse()
+                            .map_err(|_| error::Error::Io(io::Error::new(io::ErrorKind::InvalidInput, "invalid vhost address")))?
+                    };
+
+                    log::info!("Binding to vhost: {}", local_addr);
+
+                    let socket = if local_addr.is_ipv6() {
+                        tokio::net::TcpSocket::new_v6()?
+                    } else {
+                        tokio::net::TcpSocket::new_v4()?
+                    };
+                    socket.set_reuseaddr(true)?;
+                    socket.bind(local_addr)?;
+                    return Ok(socket.connect(address).await?);
+                }
+                Ok(TcpStream::connect(address).await?)
+            }
             ProxyType::Socks5 => {
                 let proxy_server = config.proxy_server();
                 let proxy_port = config.proxy_port();
