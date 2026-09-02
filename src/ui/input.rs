@@ -381,7 +381,7 @@ fn attempt_completion(app: &mut App) {
         if parts.len() == 2 {
             let partial = parts[1].to_lowercase();
             if partial.is_empty() { return; }
-            let settings: Vec<&str> = app.settings.keys()
+            let settings: Vec<&str> = app.settings.map.keys()
                 .filter(|k| k.to_lowercase().starts_with(&partial))
                 .map(|k| k.as_str())
                 .collect();
