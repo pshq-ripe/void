@@ -469,6 +469,18 @@ pub fn handle_irc_message(app: &mut App, msg: &Message) {
             }
         }
 
+        // ─── ERROR od serwera (k-line, throttling, etc.) ──
+        Command::ERROR(text) => {
+            app.system_message(&format!("-!- Server ERROR: {}", text));
+            if text.contains("K-Lined") || text.contains("killed") || text.contains("banned") {
+                app.system_message("-!- You have been banned from this server.");
+            } else if text.contains("throttled") || text.contains("flooding") {
+                app.system_message("-!- Connection throttled. Try again later.");
+            } else if text.contains("too many") || text.contains("limit") {
+                app.system_message("-!- Connection limit reached.");
+            }
+        }
+
         _ => {}
     }
 }
@@ -881,9 +893,58 @@ fn handle_server_response(app: &mut App, resp: Response, args: &[String], _sourc
             app.system_message("-!- Note: Reconnect with TLS enabled for secure connection.");
         }
 
+        // ─── IRC error codes ────────────────────────────
+        _ if resp as u16 == 461 => {
+            app.system_message(&format!("-!- Error: {}", text));
+        }
+        _ if resp as u16 == 462 => {
+            app.system_message(&format!("-!- Error: {}", text));
+        }
+        _ if resp as u16 == 463 => {
+            app.system_message(&format!("-!- Permission denied: {}", text));
+        }
+        _ if resp as u16 == 464 => {
+            app.system_message(&format!("-!- Password incorrect: {}", text));
+        }
+        _ if resp as u16 == 465 => {
+            // k-line
+            app.system_message(&format!("-!- BANNED from server: {}", text));
+            app.system_message("-!- You are k-lined. Contact server admins or try another server.");
+        }
+        _ if resp as u16 == 466 => {
+            app.system_message(&format!("-!- Warning: {}", text));
+        }
+        _ if resp as u16 == 471 => {
+            app.system_message(&format!("-!- Channel full: {}", text));
+        }
+        _ if resp as u16 == 473 => {
+            app.system_message(&format!("-!- Invite only: {}", text));
+        }
+        _ if resp as u16 == 474 => {
+            app.system_message(&format!("-!- Banned from channel: {}", text));
+        }
+        _ if resp as u16 == 475 => {
+            app.system_message(&format!("-!- Bad channel key: {}", text));
+        }
+        _ if resp as u16 == 477 => {
+            app.system_message(&format!("-!- Registration required: {}", text));
+        }
+        _ if resp as u16 == 480 => {
+            app.system_message(&format!("-!- SSL/TLS required: {}", text));
+        }
+        _ if resp as u16 == 491 => {
+            // brak i-line (no O-line for host)
+            app.system_message(&format!("-!- No O-line for your host: {}", text));
+            app.system_message("-!- Server rejected your connection. Check if your host is authorized.");
+        }
+        _ if resp as u16 == 502 => {
+            app.system_message(&format!("-!- {}", text));
+        }
+        _ if resp as u16 == 553 => {
+            app.system_message(&format!("-!- SSL required: {}", text));
+        }
         // ─── Nierozpoznane (wypisz jako raw) ─────────
         _ => {
-            // Wyswietl odpowiedzi serwera w oknie statusu
             if !text.is_empty() {
                 app.system_message(&text);
             }
