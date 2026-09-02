@@ -671,7 +671,21 @@ pub async fn spawn_connection(
             let _ = tx.send(IrcEvent::Disconnected).await;
         }
         Err(e) => {
-            let _ = tx.send(IrcEvent::Error(format!("Connection error: {}", e))).await;
+            let detail = format!("{}", e);
+            let reason = if detail.contains("os error 113") {
+                "No route to host".to_string()
+            } else if detail.contains("os error 111") {
+                "Connection refused".to_string()
+            } else if detail.contains("timed out") {
+                "Connection timed out".to_string()
+            } else if detail.contains("ssl3_get_record") {
+                "TLS handshake failed (server may not support TLS on this port)".to_string()
+            } else if detail.contains("certificate") {
+                "TLS certificate verification failed".to_string()
+            } else {
+                detail.clone()
+            };
+            let _ = tx.send(IrcEvent::Error(format!("Connection error: {}", reason))).await;
         }
     }
 }

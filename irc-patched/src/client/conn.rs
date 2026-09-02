@@ -116,9 +116,10 @@ impl Connection {
         let server = config.server()?;
         let port = config.port();
 
-        // Vhost binding — jeśli source jest ustawione, bind do tego adresu
+        // Vhost binding — jeśli source jest adresem IP, bind do niego
         let source = config.source();
-        if !source.is_empty() {
+        let is_ip = source.parse::<std::net::IpAddr>().is_ok();
+        if is_ip {
             let local_addr: std::net::SocketAddr = if source.contains(':') {
                 format!("[{}]:0", source).parse()
                     .map_err(|_| error::Error::Io(io::Error::new(io::ErrorKind::InvalidInput, "invalid vhost address")))?
