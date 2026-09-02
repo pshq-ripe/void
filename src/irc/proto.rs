@@ -281,6 +281,7 @@ pub fn handle_irc_message(app: &mut App, msg: &Message) {
         Command::NICK(new_nick) => {
             if source == app.server().our_nick {
                 app.server_mut().our_nick = new_nick.clone();
+                app.system_message(&format!("-!- You are now known as {}", new_nick));
             }
             // Zaktualizuj we WSZYSTKICH buforach
             let mut affected_buffers = Vec::new();
