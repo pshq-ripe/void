@@ -320,6 +320,46 @@ pub async fn spawn_connection(
         format!("-!- Establishing TCP connection to {}:{}...", host, port)
     )).await;
 
+    // Vhost binding — stwórz socket z local_addr przed connect
+    if let Some(ref vh) = vhost {
+        let local_addr: std::net::SocketAddr = if vh.contains(':') {
+            format!("[{}]:0", vh).parse().unwrap_or_else(|_| "0.0.0.0:0".parse().unwrap())
+        } else {
+            format!("{}:0", vh).parse().unwrap_or_else(|_| "0.0.0.0:0".parse().unwrap())
+        };
+        let _ = tx.send(IrcEvent::Status(
+            format!("-!- Binding socket to: {}", local_addr)
+        )).await;
+
+        // Użyj TcpSocket do bind przed connect
+        let socket = if local_addr.is_ipv6() {
+            tokio::net::TcpSocket::new_v6()
+        } else {
+            tokio::net::TcpSocket::new_v4()
+        };
+
+        if let Ok(socket) = socket {
+            socket.set_reuseaddr(true).ok();
+            if socket.bind(local_addr).is_ok() {
+                let connect_addr = format!("{}:{}", host, port);
+                match socket.connect(connect_addr.parse().unwrap_or_else(|_| local_addr)).await {
+                    Ok(stream) => {
+                        let _ = tx.send(IrcEvent::Status(
+                            "-!- TCP connected via vhost.".into()
+                        )).await;
+                        // TODO: TLS handshake na stream
+                        // Na razie kontynuuj z from_config
+                    }
+                    Err(e) => {
+                        let _ = tx.send(IrcEvent::Status(
+                            format!("-!- Vhost bind failed: {}. Using default.", e)
+                        )).await;
+                    }
+                }
+            }
+        }
+    }
+
     match Client::from_config(config).await {
         Ok(mut client) => {
             let _ = tx.send(IrcEvent::Status(

@@ -15,7 +15,7 @@ crossterm = "0.29.0"
 encoding_rs = "0.8"
 futures = "0.3.34"
 hostname = "0.4"
-irc = { version = "1.1.0", features = ["proxy"] }
+irc = { path = "irc-patched", features = ["proxy"] }
 mlua = { version = "0.12.0", features = ["lua54", "send", "vendored"] }
 ring = "0.17"
 rusqlite = { version = "0.35", features = ["bundled-sqlcipher"] }
