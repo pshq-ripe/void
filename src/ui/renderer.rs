@@ -719,16 +719,12 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             Span::styled(prompt, Style::default().fg(app.theme_colors.input_prompt_fg).add_modifier(Modifier::BOLD)),
             Span::styled(&app.input_text, Style::default().fg(app.theme_colors.input_fg)),
         ];
-        let mut input_block_widget = Block::default();
-        if app.theme_colors.input_bg != Color::Reset {
-            input_block_widget = input_block_widget.style(Style::default().bg(app.theme_colors.input_bg));
-        }
-        let input_block = Paragraph::new(Line::from(input_spans)).block(input_block_widget);
+        let input_block = Paragraph::new(Line::from(input_spans));
         f.render_widget(input_block, main_chunks[3]);
 
         // Pozycja kursora w linii wejścia
         let cursor_x = main_chunks[3].x + prompt_len + cursor_pos as u16;
-        let cursor_y = main_chunks[3].y + 1; // +1 bo border TOP
+        let cursor_y = main_chunks[3].y;
         f.set_cursor_position((cursor_x, cursor_y));
     })?;
     Ok(())
