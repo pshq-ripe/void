@@ -287,6 +287,24 @@ The input prompt shows context:
 - **~/.void/void.db** — SQLCipher encrypted SQLite database
 - **~/.void/void.conf** — Text backup of settings
 
+## IRC Error Handling
+
+Void shows detailed error messages for common IRC issues:
+
+| Code | Meaning | Message |
+|------|---------|---------|
+| 465 | K-Lined | `BANNED from server` — you are banned |
+| 491 | No O-line | `No O-line for your host` — host not authorized |
+| 471 | Channel full | `Channel full` — +l limit reached |
+| 473 | Invite only | `Invite only` — channel is +i |
+| 474 | Banned | `Banned from channel` — you are +b |
+| 475 | Bad key | `Bad channel key` — wrong password |
+| 477 | Reg required | `Registration required` — nick registration needed |
+| 480 | SSL required | `SSL/TLS required` — must use TLS |
+| 464 | Wrong pass | `Password incorrect` — server password wrong |
+
+Server `ERROR` messages (k-line, throttling, connection limits) are also detected and explained.
+
 ## Upgrading
 
 ```bash

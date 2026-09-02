@@ -3254,6 +3254,30 @@ export TERM=xterm-256color
 | `-!- Cannot send text in Status window.` | Tried to type text in Status | Use `/join #channel` first |
 | `-!- Error: Usage: /cmd <args>` | Missing required arguments | Check `/help cmd` for syntax |
 
+### 11.8 IRC Server Error Codes
+
+| Code | Name | Message | Cause |
+|---|---|---|---|
+| 461 | ERR_NEEDMOREPARAMS | `Error: Not enough parameters` | Missing command parameters |
+| 462 | ERR_ALREADYREGISTRED | `Error: You may not reregister` | Already registered |
+| 463 | ERR_NOPRIVILEGES | `Permission denied` | No privileges for this action |
+| 464 | ERR_PASSWDMISMATCH | `Password incorrect` | Wrong server password |
+| 465 | ERR_YOUREBANNEDCREEP | `BANNED from server` | K-lined — you are banned |
+| 466 | ERR_YOUWILLBEBANNED | `Warning` | About to be banned |
+| 471 | ERR_CHANNELISFULL | `Channel full` | Channel is +l (full) |
+| 473 | ERR_INVITEONLYCHAN | `Invite only` | Channel is +i |
+| 474 | ERR_BANNEDFROMCHAN | `Banned from channel` | You are +b on this channel |
+| 475 | ERR_BADCHANNELKEY | `Bad channel key` | Wrong channel password (+k) |
+| 477 | ERR_NEEDREGGEDNICK | `Registration required` | Nick registration required |
+| 480 | ERR_SSLREQUIRED | `SSL/TLS required` | Must use TLS to connect |
+| 491 | ERR_NOOPERHOST | `No O-line for your host` | Host not authorized for OPER |
+| 553 | ERR_SSL_NEEDED | `SSL required` | IRCNet requires SSL |
+
+Server `ERROR` command (sent on disconnect):
+- `K-Lined/killed/banned` — You have been banned from this server
+- `throttled/flooding` — Connection throttled, try later
+- `too many/limit` — Connection limit reached
+
 ---
 
 ## 12. Credits
