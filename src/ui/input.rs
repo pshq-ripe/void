@@ -211,8 +211,8 @@ pub fn handle_key(app: &mut App, key: KeyEvent, registry: &CommandRegistry) -> b
             }
         }
         KeyCode::Tab => {
-            // Autouzupełnianie nicków
-            attempt_nick_completion(app);
+            // Autouzupełnianie: komendy, settings, nicki
+            attempt_completion(app);
         }
         KeyCode::Enter => {
             if !app.input_text.is_empty() {
@@ -335,14 +335,70 @@ fn execute_expanded(app: &mut App, expanded: &str, registry: &CommandRegistry) {
     }
 }
 
-/// Tab completion — dopasuj nick z aktualnego bufora
-fn attempt_nick_completion(app: &mut App) {
+/// Tab completion — komendy, settings, nicki
+fn attempt_completion(app: &mut App) {
     let input = app.input_text.clone();
-    let last_word_start = input.rfind(' ').map(|i| i + 1).unwrap_or(0);
-    let partial = &input[last_word_start..];
-    if partial.is_empty() {
+
+    // Komendy: /he[TAB] → /help
+    if input.starts_with('/') && !input.contains(' ') {
+        let partial = &input[1..]; // strip '/'
+        if partial.is_empty() { return; }
+        let commands = vec![
+            "server", "connect", "disconnect", "reconnect", "quit", "exit",
+            "join", "part", "topic", "names", "kick", "mode", "invite",
+            "ban", "unban", "kickban", "op", "deop", "voice", "devoice",
+            "msg", "me", "notice", "say", "query", "ctcp",
+            "nick", "away", "whois", "whowas", "who", "userhost",
+            "oper", "kill", "set", "alias", "unalias", "highlight",
+            "bind", "format", "save", "load", "reload", "charset",
+            "help", "raw", "echo", "exec", "log", "eval", "dcc",
+            "timer", "notify", "ignore", "debug", "cd", "pwd",
+            "window", "clear", "lastlog", "scroll", "repaint",
+            "upgrade", "bouncer", "module", "theme",
+            // LiCe5
+            "gone", "back", "autoaway", "ig", "k", "kb", "rk",
+            "ul", "alarm", "paste", "logman", "protect", "autovoice",
+            "antiflood", "nickserv", "ns", "massop", "massdeop",
+            "massvoice", "massdevoice", "memo", "note", "dns",
+            "finger", "wall", "signoff", "party", "sensors", "invlist",
+        ];
+        let matches: Vec<&str> = commands.iter()
+            .filter(|c| c.starts_with(&partial.to_lowercase()))
+            .copied()
+            .collect();
+        if matches.len() == 1 {
+            app.input_text = format!("/{} ", matches[0]);
+            app.input_cursor_pos = app.input_text.len();
+        } else if matches.len() > 1 {
+            app.system_message(&format!("-!- Completions: /{}", matches.join(" /")));
+        }
         return;
     }
+
+    // Settings: /set TIMEST[TAB] → /set TIMESTAMP_FORMAT
+    if input.starts_with("/set ") {
+        let parts: Vec<&str> = input.splitn(3, ' ').collect();
+        if parts.len() == 2 {
+            let partial = parts[1].to_lowercase();
+            if partial.is_empty() { return; }
+            let settings: Vec<&str> = app.settings.keys()
+                .filter(|k| k.to_lowercase().starts_with(&partial))
+                .map(|k| k.as_str())
+                .collect();
+            if settings.len() == 1 {
+                app.input_text = format!("/set {} ", settings[0]);
+                app.input_cursor_pos = app.input_text.len();
+            } else if settings.len() > 1 {
+                app.system_message(&format!("-!- Settings: {}", settings.join(", ")));
+            }
+            return;
+        }
+    }
+
+    // Nicki: nick[TAB] → nick:
+    let last_word_start = input.rfind(' ').map(|i| i + 1).unwrap_or(0);
+    let partial = &input[last_word_start..];
+    if partial.is_empty() { return; }
 
     let buf = &app.buffers[app.current_buffer_idx];
     let matches: Vec<&str> = buf
@@ -354,7 +410,7 @@ fn attempt_nick_completion(app: &mut App) {
 
     if matches.len() == 1 {
         let completion = if last_word_start == 0 {
-            format!("{}: ", matches[0]) // Na początku linii dodaj dwukropek
+            format!("{}: ", matches[0])
         } else {
             format!("{} ", matches[0])
         };
