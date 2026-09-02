@@ -78,6 +78,7 @@ impl CommandRegistry {
         self.register("NICK", &[], "/nick <newnick> — Change nickname", cmd_nick);
         self.register("AWAY", &[], "/away [message] — Set/unset away", cmd_away);
         self.register("WHOIS", &["wi"], "/whois <nick> — Query user info", cmd_whois);
+        self.register("WHOIS2", &["wii"], "/wii <nick> — Extended WHOIS (current server)", cmd_whois2);
         self.register("WHOWAS", &[], "/whowas <nick> — Query past user info", cmd_whowas);
         self.register("WHO", &[], "/who <mask> — List matching users", cmd_who);
         self.register("USERHOST", &[], "/userhost <nick> — Query user host", cmd_userhost);
@@ -600,6 +601,18 @@ fn cmd_whois(app: &mut App, args: &[&str]) -> CommandResult {
     }
     if let Some(s) = &app.server().sender {
         let _ = s.send(irc::client::prelude::Command::WHOIS(None, args[0].to_string()));
+    }
+    CommandResult::Ok
+}
+
+fn cmd_whois2(app: &mut App, args: &[&str]) -> CommandResult {
+    if args.is_empty() {
+        return CommandResult::Error("Usage: /wii <nick>".into());
+    }
+    if let Some(s) = &app.server().sender {
+        // WHOIS nick nick — forces current server to respond (irssi /wii)
+        let nick = args[0].to_string();
+        let _ = s.send(irc::client::prelude::Command::WHOIS(Some(nick.clone()), nick));
     }
     CommandResult::Ok
 }

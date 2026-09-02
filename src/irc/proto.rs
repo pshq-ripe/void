@@ -609,6 +609,18 @@ fn handle_server_response(app: &mut App, resp: Response, args: &[String], _sourc
                 app.system_message(&format!("-!- {} ({}@{}) : {}", args[1], args[2], args[3], args[5]));
             }
         }
+        _ if resp as u16 == 307 => {
+            // RPL_WHOISREGNICK — registered nick
+            if args.len() >= 3 {
+                app.system_message(&format!("-!- {} :{}", args[1], args[2..].join(" ")));
+            }
+        }
+        _ if resp as u16 == 310 => {
+            // RPL_WHOISHELPOP — help operator (some servers)
+            if args.len() >= 3 {
+                app.system_message(&format!("-!- {} :{}", args[1], args[2..].join(" ")));
+            }
+        }
         Response::RPL_WHOISCHANNELS => {
             if args.len() >= 3 {
                 app.system_message(&format!("-!- {} is on: {}", args[1], args[2]));
@@ -617,6 +629,12 @@ fn handle_server_response(app: &mut App, resp: Response, args: &[String], _sourc
         Response::RPL_WHOISSERVER => {
             if args.len() >= 4 {
                 app.system_message(&format!("-!- {} using server: {} ({})", args[1], args[2], args[3]));
+            }
+        }
+        _ if resp as u16 == 313 => {
+            // RPL_WHOISOPERATOR — IRC operator
+            if args.len() >= 3 {
+                app.system_message(&format!("-!- {} :{}", args[1], args[2..].join(" ")));
             }
         }
         Response::RPL_WHOISIDLE => {
@@ -636,6 +654,38 @@ fn handle_server_response(app: &mut App, resp: Response, args: &[String], _sourc
                 } else {
                     app.system_message(&format!("-!- {} idle {}m {}s", args[1], idle_min, idle_s));
                 }
+            }
+        }
+        _ if resp as u16 == 330 => {
+            // RPL_WHOISACCOUNT — logged in account
+            if args.len() >= 4 {
+                app.system_message(&format!("-!- {} is logged in as {}", args[1], args[2]));
+            }
+        }
+        _ if resp as u16 == 338 => {
+            // RPL_WHOISACTUALLY — real host/IP
+            if args.len() >= 4 {
+                app.system_message(&format!("-!- {} is actually {}@{}", args[1], args[2], args[3]));
+            } else if args.len() >= 3 {
+                app.system_message(&format!("-!- {} is actually {}", args[1], args[2]));
+            }
+        }
+        _ if resp as u16 == 378 => {
+            // RPL_WHOISHOST — real host (IRCNet)
+            if args.len() >= 3 {
+                app.system_message(&format!("-!- {} :{}", args[1], args[2..].join(" ")));
+            }
+        }
+        _ if resp as u16 == 379 => {
+            // RPL_WHOISMODES — user modes
+            if args.len() >= 3 {
+                app.system_message(&format!("-!- {} :{}", args[1], args[2..].join(" ")));
+            }
+        }
+        _ if resp as u16 == 276 => {
+            // RPL_WHOISCERTFP — TLS certificate fingerprint
+            if args.len() >= 3 {
+                app.system_message(&format!("-!- {} has client certificate fingerprint: {}", args[1], args[2]));
             }
         }
         Response::RPL_ENDOFWHOIS => {
