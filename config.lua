@@ -43,7 +43,11 @@ if not base_dir then
 end
 
 -- Funkcja pomocnicza przekierowująca "modules/" do wybranego load_module
+-- Nie routuj jeśli ścieżka już zaczyna się od base_dir
 local function route_to_module(path)
+    if path:sub(1, #base_dir) == base_dir then
+        return path  -- już zroutowane
+    end
     if path:sub(1, 8) == "modules/" then
         return base_dir .. path:sub(9)
     end

@@ -29,7 +29,8 @@ pub fn expand_status_format<'a>(app: &App, template: &str) -> Vec<Span<'a>> {
             match chars.next() {
                 Some('T') => {
                     flush(&mut current_text, &mut spans, app.theme_colors.status_bar_info_fg, bg);
-                    let time = chrono::Local::now().format("%H:%M").to_string();
+                    let ts_format = app.settings.get("TIMESTAMP_FORMAT");
+                    let time = chrono::Local::now().format(ts_format).to_string();
                     spans.push(Span::styled(time, Style::default().fg(app.theme_colors.status_bar_info_fg).bg(bg)));
                 }
                 Some('N') => {
