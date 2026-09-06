@@ -344,7 +344,7 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
 
     let chat_paragraph = Paragraph::new(all_text)
         .block(chat_block)
-        .wrap(Wrap { trim: false })
+        .wrap(Wrap { trim: true })
         .scroll((scroll_row as u16, 0));
     f.render_widget(chat_paragraph, area);
 
