@@ -716,18 +716,25 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         let prompt_len = prompt.len() as u16;
         let cursor_pos = app.input_cursor_pos;
 
-        // Prompt w kolorze theme, tekst w kolorze input_fg
+        // Custom cursor — rysuj blok kursora zamiast native terminal cursor
+        let cursor_char = app.input_text[cursor_pos..].chars().next().unwrap_or(' ');
+        let before_cursor = &app.input_text[..cursor_pos];
+        let after_cursor = if cursor_pos < app.input_text.len() {
+            &app.input_text[cursor_pos + cursor_char.len_utf8()..]
+        } else {
+            ""
+        };
         let input_spans = vec![
             Span::styled(prompt, Style::default().fg(app.theme_colors.input_prompt_fg).add_modifier(Modifier::BOLD)),
-            Span::styled(&app.input_text, Style::default().fg(app.theme_colors.input_fg)),
+            Span::styled(before_cursor.to_string(), Style::default().fg(app.theme_colors.input_fg)),
+            Span::styled(cursor_char.to_string(), Style::default().fg(Color::Black).bg(Color::White)),
+            Span::styled(after_cursor.to_string(), Style::default().fg(app.theme_colors.input_fg)),
         ];
         let input_block = Paragraph::new(Line::from(input_spans));
         f.render_widget(input_block, main_chunks[3]);
 
-        // Pozycja kursora w linii wejścia
-        let cursor_x = main_chunks[3].x + prompt_len + cursor_pos as u16;
-        let cursor_y = main_chunks[3].y;
-        f.set_cursor_position((cursor_x, cursor_y));
+        // Ukryj native cursor — poza viewport
+        f.set_cursor_position((0, area.height.saturating_sub(1)));
     })?;
     Ok(())
 }
