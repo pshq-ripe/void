@@ -249,9 +249,6 @@ async fn main() -> Result<()> {
     let mut lag_tick = tokio::time::interval(Duration::from_secs(30)); // lag ping co 30s
 
     while app.running {
-        // Draw
-        renderer::draw(&mut terminal, &app)?;
-
         // Non-blocking poll z kanałów + timer tick + redraw timeout
         tokio::select! {
             // Redraw co 100ms nawet bez eventów (fix: mode lag)
@@ -601,9 +598,10 @@ async fn main() -> Result<()> {
                 }
             }
         }
-    }
 
-    // ─── Zapisz stan do SQLite ────────────────────────
+        // Draw PO przetworzeniu eventów — eliminuje one-command lag
+        renderer::draw(&mut terminal, &app)?;
+    }
     app.save_to_db();
 
     // ─── Cleanup (ignoruj błędy) ─────────────────────
