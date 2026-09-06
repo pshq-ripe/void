@@ -394,7 +394,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
                 Constraint::Length(1),  // Topic bar
                 Constraint::Min(5),    // Chat + Nicks
                 Constraint::Length(statusbar_height), // Status bar
-                Constraint::Length(1), // Input
+                Constraint::Length(2), // Input
             ])
             .split(main_area);
 
