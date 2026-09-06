@@ -166,7 +166,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let hooks = hooks.clone();
         let register_cmd = lua.create_function(move |_, (name, fn_name): (String, String)| {
-            let mut h = hooks.lock().unwrap();
+            let mut h = hooks.lock().unwrap_or_else(|e| e.into_inner());
             h.commands.insert(name.to_uppercase(), fn_name);
             Ok(())
         })?;
@@ -177,7 +177,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let hooks = hooks.clone();
         let on_event = lua.create_function(move |_, (event, fn_name): (String, String)| {
-            let mut h = hooks.lock().unwrap();
+            let mut h = hooks.lock().unwrap_or_else(|e| e.into_inner());
             h.events.entry(event.to_uppercase()).or_insert_with(Vec::new).push(fn_name);
             Ok(())
         })?;
@@ -188,7 +188,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let echo_fn = lua.create_function(move |_, text: String| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("ECHO {}", text),
             });
@@ -207,7 +207,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let set_fn = lua.create_function(move |_, (key, value): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("SET {} {}", key, value),
             });
@@ -220,7 +220,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let get_fn = lua.create_function(move |_, key: String| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             Ok(ctx.settings.get(&key.to_uppercase()).cloned().unwrap_or_default())
         })?;
         void_table.set("get", get_fn)?;
@@ -230,7 +230,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let send_fn = lua.create_function(move |_, raw: String| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("RAW {}", raw),
             });
@@ -243,7 +243,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let nick_fn = lua.create_function(move |_, ()| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             Ok(ctx.our_nick.clone())
         })?;
         void_table.set("nick", nick_fn)?;
@@ -253,7 +253,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let channel_fn = lua.create_function(move |_, ()| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             Ok(ctx.current_channel.clone())
         })?;
         void_table.set("channel", channel_fn)?;
@@ -263,7 +263,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let server_fn = lua.create_function(move |_, ()| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             Ok(ctx.server_host.clone())
         })?;
         void_table.set("server", server_fn)?;
@@ -273,7 +273,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let connected_fn = lua.create_function(move |_, ()| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             Ok(ctx.connected)
         })?;
         void_table.set("connected", connected_fn)?;
@@ -283,7 +283,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let msg_fn = lua.create_function(move |_, (target, text): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("MSG {} {}", target, text),
             });
@@ -296,7 +296,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let notice_fn = lua.create_function(move |_, (target, text): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("NOTICE {} {}", target, text),
             });
@@ -309,7 +309,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let me_fn = lua.create_function(move |_, (_target, action): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("ME {}", action),
             });
@@ -322,7 +322,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let ctcp_fn = lua.create_function(move |_, (target, ctcp_type, args): (String, String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("CTCP {} {} {}", target, ctcp_type, args),
             });
@@ -335,7 +335,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let join_fn = lua.create_function(move |_, (channel, key): (String, Option<String>)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let cmd = match key {
                 Some(k) => format!("JOIN {} {}", channel, k),
                 None => format!("JOIN {}", channel),
@@ -350,7 +350,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let part_fn = lua.create_function(move |_, (channel, reason): (String, Option<String>)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let cmd = match reason {
                 Some(r) => format!("PART {} {}", channel, r),
                 None => format!("PART {}", channel),
@@ -365,7 +365,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let op_fn = lua.create_function(move |_, (channel, nick): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("MODE {} +o {}", channel, nick),
             });
@@ -378,7 +378,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let deop_fn = lua.create_function(move |_, (channel, nick): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("MODE {} -o {}", channel, nick),
             });
@@ -391,7 +391,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let voice_fn = lua.create_function(move |_, (channel, nick): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("MODE {} +v {}", channel, nick),
             });
@@ -404,7 +404,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let devoice_fn = lua.create_function(move |_, (channel, nick): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("MODE {} -v {}", channel, nick),
             });
@@ -417,7 +417,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let ban_fn = lua.create_function(move |_, (channel, mask): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("MODE {} +b {}", channel, mask),
             });
@@ -430,7 +430,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let unban_fn = lua.create_function(move |_, (channel, mask): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("MODE {} -b {}", channel, mask),
             });
@@ -443,7 +443,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let kick_fn = lua.create_function(move |_, (channel, nick, reason): (String, String, Option<String>)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let cmd = match reason {
                 Some(r) => format!("KICK {} {} {}", channel, nick, r),
                 None => format!("KICK {} {}", channel, nick),
@@ -458,7 +458,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let mode_fn = lua.create_function(move |_, (channel, modes): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("MODE {} {}", channel, modes),
             });
@@ -471,7 +471,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let topic_fn = lua.create_function(move |_, (channel, text): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("TOPIC {} {}", channel, text),
             });
@@ -484,7 +484,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let invite_fn = lua.create_function(move |_, (nick, channel): (String, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("INVITE {} {}", nick, channel),
             });
@@ -497,7 +497,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let whois_fn = lua.create_function(move |_, nick: String| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("WHOIS {}", nick),
             });
@@ -510,7 +510,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let nick_fn = lua.create_function(move |_, newnick: String| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("NICK {}", newnick),
             });
@@ -523,7 +523,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let away_fn = lua.create_function(move |_, msg: Option<String>| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let cmd = match msg {
                 Some(m) => format!("AWAY {}", m),
                 None => "AWAY".to_string(),
@@ -538,7 +538,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let quit_fn = lua.create_function(move |_, reason: Option<String>| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let cmd = match reason {
                 Some(r) => format!("QUIT {}", r),
                 None => "QUIT".to_string(),
@@ -553,7 +553,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let timer_fn = lua.create_function(move |_, (seconds, fn_name): (f64, String)| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("TIMER {} 1 {}", seconds, fn_name),
             });
@@ -670,7 +670,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
             let mut key = [0u8; 64];
             pbkdf2::derive(
                 pbkdf2::PBKDF2_HMAC_SHA512,
-                std::num::NonZeroU32::new(iterations.max(1)).unwrap(),
+                std::num::NonZeroU32::new(iterations.max(1)).unwrap_or(std::num::NonZeroU32::new(1).unwrap()),
                 salt.as_bytes(),
                 password.as_bytes(),
                 &mut key,
@@ -858,7 +858,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let ison_fn = lua.create_function(move |_, nicks: Vec<String>| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("ISON {}", nicks.join(" ")),
             });
@@ -871,7 +871,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let userhost_fn = lua.create_function(move |_, nick: String| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("USERHOST {}", nick),
             });
@@ -884,7 +884,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let log_fn = lua.create_function(move |_, text: String| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("ECHO {}", text),
             });
@@ -897,7 +897,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let load_fn = lua.create_function(move |_, path: String| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("LOAD {}", path),
             });
@@ -910,7 +910,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let exec_fn = lua.create_function(move |_, cmd: String| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("EXEC {}", cmd),
             });
@@ -923,7 +923,7 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
     {
         let ctx = ctx.clone();
         let apply_fn = lua.create_function(move |_, name: String| {
-            let ctx = ctx.lock().unwrap();
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
             let _ = ctx.cmd_tx.try_send(LuaCommand {
                 raw: format!("THEME_APPLY {}", name),
             });

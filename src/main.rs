@@ -517,7 +517,7 @@ async fn main() -> Result<()> {
                         app.system_message(&format!("-!- Connected to {}:{}", app.server().host, app.server().port));
                         // Sync Lua context
                         {
-                            let mut ctx = lua_ctx.lock().unwrap();
+                            let mut ctx = lua_ctx.lock().unwrap_or_else(|e| e.into_inner());
                             ctx.connected = true;
                             ctx.our_nick = app.server().our_nick.clone();
                             ctx.server_host = app.server().host.clone();
@@ -538,7 +538,7 @@ async fn main() -> Result<()> {
                         app.server_mut().sender = None;
                         app.system_message("-!- Disconnected from server.");
                         {
-                            let mut ctx = lua_ctx.lock().unwrap();
+                            let mut ctx = lua_ctx.lock().unwrap_or_else(|e| e.into_inner());
                             ctx.connected = false;
                         }
 
@@ -560,7 +560,7 @@ async fn main() -> Result<()> {
                     IrcEvent::Message(msg) => {
                         // Odpal hooki Lua dla tego zdarzenia
                         {
-                            let hooks = lua_hooks.lock().unwrap();
+                            let hooks = lua_hooks.lock().unwrap_or_else(|e| e.into_inner());
                             let event_name = format!("{:?}", msg.command);
                             let event_type = event_name.split('(').next().unwrap_or(&event_name);
                             let source = msg.source_nickname().unwrap_or("");
@@ -582,7 +582,7 @@ async fn main() -> Result<()> {
                     }
                     IrcEvent::CapEvent(sub, data) => {
                         // Odpal hooki Lua dla CAP events
-                        let hooks = lua_hooks.lock().unwrap();
+                        let hooks = lua_hooks.lock().unwrap_or_else(|e| e.into_inner());
                         let results = void::scripting::api::fire_event(
                             &lua, &hooks, "CAP",
                             &[&sub, &data],

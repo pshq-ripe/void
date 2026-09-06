@@ -72,9 +72,10 @@ pub fn handle_key(app: &mut App, key: KeyEvent, registry: &CommandRegistry) -> b
                     }
                 } else if !app.input_history.is_empty() {
                     // Pusta linia — pokaż ostatnią komendę
-                    let last = app.input_history.last().unwrap().clone();
-                    app.input_text = last;
-                    app.input_cursor_pos = app.input_text.len();
+                    if let Some(last) = app.input_history.last() {
+                        app.input_text = last.clone();
+                        app.input_cursor_pos = app.input_text.len();
+                    }
                 }
                 return false;
             }
@@ -241,7 +242,7 @@ pub fn handle_key(app: &mut App, key: KeyEvent, registry: &CommandRegistry) -> b
                     } else if let Some(ref hooks) = app.lua_hooks {
                         // Sprawdź komendy Lua
                         if let Some(ref lua) = app.lua {
-                            let h = hooks.lock().unwrap();
+                            let h = hooks.lock().unwrap_or_else(|e| e.into_inner());
                             let results = crate::scripting::api::call_lua_command(lua, &h, cmd_name, args);
                             drop(h);
                             if let Some(results) = results {

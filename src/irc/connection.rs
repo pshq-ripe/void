@@ -169,12 +169,12 @@ impl ScramState {
         match self.algo {
             ScramAlgo::Sha256 => pbkdf2::derive(
                 pbkdf2::PBKDF2_HMAC_SHA256,
-                std::num::NonZeroU32::new(iterations).unwrap(),
+                std::num::NonZeroU32::new(iterations).unwrap_or(std::num::NonZeroU32::new(1).unwrap()),
                 &salt, password.as_bytes(), &mut salted_password,
             ),
             ScramAlgo::Sha512 => pbkdf2::derive(
                 pbkdf2::PBKDF2_HMAC_SHA512,
-                std::num::NonZeroU32::new(iterations).unwrap(),
+                std::num::NonZeroU32::new(iterations).unwrap_or(std::num::NonZeroU32::new(1).unwrap()),
                 &salt, password.as_bytes(), &mut salted_password,
             ),
         }
