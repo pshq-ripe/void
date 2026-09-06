@@ -63,4 +63,14 @@ void_themes.register("Dracula", {
         action = "* $0 $1",
         public = "<$0> $1",
     },
+    ctcp = {
+        version = "Void IRC Client v0.3.0 (Rust)",
+        userinfo = "Void IRC Client",
+        source = "https://github.com/pshq-ripe/void",
+    },
+    reasons = {
+        kick = "Requested",
+        part = "Leaving",
+        quit = "Leaving",
+    },
 })

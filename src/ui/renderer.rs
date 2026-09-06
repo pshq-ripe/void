@@ -321,8 +321,10 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
                 let ts_str = chrono::DateTime::from_timestamp(m.timestamp, 0)
                     .map(|dt| dt.with_timezone(&chrono::Local).format(ts_format).to_string())
                     .unwrap_or_default();
+                // Padding do stałej szerokości (np. [HH:MM:SS] = 10 znaków)
+                let ts_padded = format!("{:<8}", ts_str);
                 let mut line_spans = vec![
-                    Span::styled(format!("[{}] ", ts_str), Style::default().fg(theme.timestamp)),
+                    Span::styled(format!("[{}] ", ts_padded), Style::default().fg(theme.timestamp)),
                 ];
                 line_spans.extend(msg_spans);
                 Line::from(line_spans)
@@ -335,10 +337,10 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
     let scroll_offset = scroll_offset.min(total_msgs.saturating_sub(1));
     let scroll_row = total_msgs.saturating_sub(scroll_offset).saturating_sub(chat_height);
 
-    let mut chat_block = Block::default().borders(Borders::NONE);
-    if theme.chat_bg != Color::Reset {
-        chat_block = chat_block.style(Style::default().bg(theme.chat_bg));
-    }
+    let chat_bg = if theme.chat_bg != Color::Reset { theme.chat_bg } else { Color::Reset };
+    let chat_block = Block::default()
+        .borders(Borders::NONE)
+        .style(Style::default().bg(chat_bg));
 
     let chat_paragraph = Paragraph::new(all_text)
         .block(chat_block)
