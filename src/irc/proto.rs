@@ -498,11 +498,20 @@ fn handle_server_response(app: &mut App, resp: Response, args: &[String], _sourc
         // ─── Powitanie serwera i ISUPPORT ─────────────
         Response::RPL_WELCOME => {
             app.system_message(&text);
+            app.server_mut().connected = true;
             // Auto-identify z NickServ jeśli hasło jest skonfigurowane
             if let Some(ref pass) = app.server().nick_password {
                 if let Some(s) = &app.server().sender {
                     let _ = s.send_privmsg("NickServ", &format!("IDENTIFY {}", pass));
                     app.system_message("-!- Sent IDENTIFY to NickServ.");
+                }
+            }
+            // Auto-join kanałów po reconnect
+            let channels: Vec<String> = app.server().auto_join.drain(..).collect();
+            for ch in channels {
+                if let Some(s) = &app.server().sender {
+                    let _ = s.send_join(&ch);
+                    app.system_message(&format!("-!- Rejoining {}...", ch));
                 }
             }
         }

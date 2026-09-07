@@ -542,8 +542,8 @@ async fn main() -> Result<()> {
                             ctx.connected = false;
                         }
 
-                        // Auto-reconnect
-                        if app.settings.get_bool("AUTO_RECONNECT") && app.running {
+                        // Auto-reconnect — nie dubluj jeśli już pending
+                        if app.settings.get_bool("AUTO_RECONNECT") && app.running && conn_handle.is_none() {
                             let delay = app.settings.get_int("AUTO_RECONNECT_DELAY").max(5) as u64;
                             app.system_message(&format!("-!- Reconnecting in {} seconds...", delay));
                             let tx = irc_tx.clone();
@@ -551,10 +551,18 @@ async fn main() -> Result<()> {
                             let port = app.server().port;
                             let nickname = app.server().our_nick.clone();
                             let use_tls = app.server().tls;
+                            // Zapisz kanały do auto-join po reconnect
+                            let channels: Vec<String> = app.buffers.iter()
+                                .filter(|b| crate::ui::renderer::is_channel(&b.name) && b.name != "(Status)")
+                                .map(|b| b.name.clone())
+                                .collect();
+                            app.server_mut().auto_join = channels;
                             conn_handle = Some(tokio::spawn(async move {
                                 tokio::time::sleep(Duration::from_secs(delay)).await;
                                 connection::spawn_connection(host, port, nickname, use_tls, None, None, false, connection::ProxyConfig::default(), false, None, tx).await;
                             }));
+                        } else if conn_handle.is_some() {
+                            app.system_message("-!- Reconnect already pending...");
                         }
                     }
                     IrcEvent::Message(msg) => {
