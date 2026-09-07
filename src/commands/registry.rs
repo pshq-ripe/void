@@ -176,14 +176,17 @@ fn cmd_server(app: &mut App, args: &[&str]) -> CommandResult {
     if args.is_empty() {
         // Pokaż wszystkie serwery z buforami
         app.system_message("-!- Servers:");
-        for (i, server) in app.servers.iter().enumerate() {
+        let server_info: Vec<(usize, String, u16, bool, String, Vec<usize>)> = app.servers.iter().enumerate()
+            .map(|(i, s)| (i, s.host.clone(), s.port, s.connected, s.our_nick.clone(), s.buffer_indices.clone()))
+            .collect();
+        for (i, host, port, connected, nick, buf_indices) in server_info {
             let marker = if i == app.active_server_idx { "*" } else { " " };
-            let status = if server.connected { "connected" } else { "disconnected" };
-            let bufs: Vec<String> = server.buffer_indices.iter()
+            let status = if connected { "connected" } else { "disconnected" };
+            let bufs: Vec<String> = buf_indices.iter()
                 .filter_map(|&idx| app.buffers.get(idx).map(|b| b.name.clone()))
                 .collect();
             app.system_message(&format!("  {} [{}] {}:{} ({}) nick:{} bufs:[{}]",
-                marker, i, server.host, server.port, status, server.our_nick, bufs.join(", ")));
+                marker, i, host, port, status, nick, bufs.join(", ")));
         }
         return CommandResult::Ok;
     }
