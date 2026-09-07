@@ -410,16 +410,16 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             for (i, buffer) in app.buffers.iter().enumerate() {
                 let is_active = i == app.current_buffer_idx;
                 let (prefix, name_style) = if is_active {
-                    ("▸ ", Style::default().fg(app.theme_colors.status_bar_active_fg).bg(app.theme_colors.status_bar_active_bg).add_modifier(Modifier::BOLD))
+                    (format!("{:>2}>", i + 1), Style::default().fg(app.theme_colors.status_bar_active_fg).bg(app.theme_colors.status_bar_active_bg).add_modifier(Modifier::BOLD))
                 } else if buffer.has_activity {
-                    ("• ", Style::default().fg(app.theme_colors.status_bar_activity_fg))
+                    (format!("{:>2}*", i + 1), Style::default().fg(app.theme_colors.status_bar_activity_fg))
                 } else if buffer.unread_count > 0 {
-                    ("◦ ", Style::default().fg(app.theme_colors.status_bar_info_fg))
+                    (format!("{:>2}+", i + 1), Style::default().fg(app.theme_colors.status_bar_info_fg))
                 } else {
-                    ("  ", Style::default().fg(app.theme_colors.status_bar_fg))
+                    (format!("{:>2} ", i + 1), Style::default().fg(app.theme_colors.status_bar_fg))
                 };
-                let display_name = if buffer.name.len() > 16 {
-                    format!("{}…", &buffer.name[..15])
+                let display_name = if buffer.name.len() > 14 {
+                    format!("{}…", &buffer.name[..13])
                 } else {
                     buffer.name.clone()
                 };
