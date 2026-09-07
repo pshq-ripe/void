@@ -1592,35 +1592,53 @@ fn cmd_load(app: &mut App, args: &[&str]) -> CommandResult {
 
 fn cmd_reload(app: &mut App, _args: &[&str]) -> CommandResult {
     app.system_message("-!- Reloading Lua scripts...");
-    let lua_ref = app.lua.clone();
-    if let Some(lua) = lua_ref {
-        if std::path::Path::new("config.lua").exists() {
-            match std::fs::read_to_string("config.lua") {
-                Ok(script) => {
-                    match lua.load(&script).exec() {
-                        Ok(_) => { app.system_message("-!- Reloaded config.lua"); }
-                        Err(e) => { app.system_message(&format!("-!- Lua error: {}", e)); }
-                    }
-                }
-                Err(e) => { app.system_message(&format!("-!- Cannot read config.lua: {}", e)); }
-            }
-        } else {
-            app.system_message("-!- No config.lua found");
+
+    // Stwórz nowy Lua VM
+    let new_lua = match crate::scripting::engine::init_lua() {
+        Ok(l) => l,
+        Err(e) => {
+            app.system_message(&format!("-!- Failed to init Lua: {}", e));
+            return CommandResult::Ok;
         }
-        if std::path::Path::new("modules/init.lua").exists() {
-            match std::fs::read_to_string("modules/init.lua") {
-                Ok(script) => {
-                    match lua.load(&script).exec() {
-                        Ok(_) => { app.system_message("-!- Reloaded modules/init.lua"); }
-                        Err(e) => { app.system_message(&format!("-!- Lua error: {}", e)); }
-                    }
-                }
-                Err(e) => { app.system_message(&format!("-!- Cannot read modules/init.lua: {}", e)); }
-            }
-        }
-    } else {
-        app.system_message("-!- Lua engine not available.");
+    };
+
+    // Re-register API z nowym hooks i ctx
+    let new_hooks = std::sync::Arc::new(std::sync::Mutex::new(crate::scripting::api::LuaHooks::new()));
+    let (cmd_tx, _cmd_rx) = tokio::sync::mpsc::channel(100);
+
+    // Skopiuj ustawienia z istniejącego ctx
+    let old_settings = app.settings.map.clone();
+    let new_ctx = std::sync::Arc::new(std::sync::Mutex::new(crate::scripting::api::LuaContext {
+        our_nick: app.server().our_nick.clone(),
+        current_channel: app.current_buffer().name.clone(),
+        server_host: app.server().host.clone(),
+        connected: app.server().connected,
+        cmd_tx,
+        settings: old_settings,
+        nicks_by_channel: std::collections::HashMap::new(),
+        buffer_names: app.buffers.iter().map(|b| b.name.clone()).collect(),
+    }));
+
+    if let Err(e) = crate::scripting::api::register_api(&new_lua, new_hooks.clone(), new_ctx.clone()) {
+        app.system_message(&format!("-!- Failed to register API: {}", e));
+        return CommandResult::Ok;
     }
+
+    // Załaduj skrypty
+    crate::scripting::engine::load_scripts(&new_lua);
+
+    // Zamień stary VM na nowy
+    app.lua = Some(std::sync::Arc::new(new_lua));
+    app.lua_hooks = Some(new_hooks);
+    app.lua_ctx = Some(new_ctx);
+
+    // Podsumowanie
+    let hooks = app.lua_hooks.as_ref().unwrap().lock().unwrap_or_else(|e| e.into_inner());
+    let cmd_count = hooks.commands.len();
+    let event_count = hooks.events.len();
+    drop(hooks);
+
+    app.system_message(&format!("-!- Reloaded: {} commands, {} event hooks", cmd_count, event_count));
     CommandResult::Ok
 }
 
