@@ -456,9 +456,10 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             } else {
                 Direction::Vertical
             };
+            let ratio = app.split_ratio;
             let areas = Layout::default()
                 .direction(direction)
-                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .constraints([Constraint::Percentage(ratio), Constraint::Percentage(100 - ratio)])
                 .split(main_chunks[1]);
             Some((areas, split_idx))
         } else {

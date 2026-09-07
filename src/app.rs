@@ -401,6 +401,7 @@ pub struct App {
     pub theme_colors: ThemeColors,
     pub split_buffer_idx: Option<usize>, // None = brak split, Some(idx) = drugi bufor
     pub split_scroll_offset: usize,      // niezależny scroll dla split pane
+    pub split_ratio: u16,                // procent dla top pane (50 = 50/50)
     pub split_horizontal: bool,          // false=vertical(top/bottom), true=horizontal(left/right)
     pub suppress_display: bool,          // /SHH — wycisz wyświetlanie w aktualnym kontekście
     pub output_context: OutputContext,    // aktualny kontekst wyjścia
@@ -679,6 +680,7 @@ impl App {
             theme_colors: ThemeColors::default(),
             split_buffer_idx: None,
             split_scroll_offset: 0,
+            split_ratio: 50,
             split_horizontal: false,
             suppress_display: false,
             output_context: OutputContext::default(),

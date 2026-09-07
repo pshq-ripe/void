@@ -867,13 +867,16 @@ fn cmd_window(app: &mut App, args: &[&str]) -> CommandResult {
             }
         }
         "balance" => {
+            app.split_ratio = 50;
             app.system_message("-!- Split windows balanced (50/50).");
         }
         "shrink" => {
-            app.system_message("-!- Split: top window shrunk.");
+            app.split_ratio = app.split_ratio.saturating_sub(5).max(10);
+            app.system_message(&format!("-!- Split ratio: {}/{}", app.split_ratio, 100 - app.split_ratio));
         }
         "grow" => {
-            app.system_message("-!- Split: top window grown.");
+            app.split_ratio = (app.split_ratio + 5).min(90);
+            app.system_message(&format!("-!- Split ratio: {}/{}", app.split_ratio, 100 - app.split_ratio));
         }
         _ => {
             return CommandResult::Error(format!("Unknown window command: {}. Try: next, prev, close, goto, list, last, number, name, swap, move, hide, show, split, unsplit", subcmd));
