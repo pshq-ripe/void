@@ -222,6 +222,9 @@ pub struct ServerConnection {
     pub default_charset: String,               // default charset (UTF-8)
     pub bouncer: Option<crate::bouncer::Bouncer>,
     pub rejoin_channels: Vec<String>,          // channels to rejoin after reconnect
+    pub flood_protection: bool,                // outgoing flood protection
+    pub flood_queue: VecDeque<(String, std::time::Instant)>, // queued messages with timestamp
+    pub flood_last_send: Option<std::time::Instant>, // last message send time
 }
 
 /// Konfiguracja sieci IRC (chatnet)
@@ -299,6 +302,9 @@ impl ServerConnection {
             default_charset: "UTF-8".into(),
             bouncer: None,
             rejoin_channels: Vec::new(),
+            flood_protection: true,
+            flood_queue: VecDeque::new(),
+            flood_last_send: None,
         }
     }
 }

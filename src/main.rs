@@ -282,10 +282,23 @@ async fn main() -> Result<()> {
                             } else {
                                 let buf_name = app.buffers[app.current_buffer_idx].name.clone();
                                 if buf_name != "(Status)" {
-                                    if let Some(s) = &app.server().sender {
-                                        let _ = s.send_privmsg(&buf_name, line);
+                                    // Flood protection — sprawdź czy nie za szybko
+                                    let now = std::time::Instant::now();
+                                    let should_queue = if let Some(last) = app.server().flood_last_send {
+                                        now.duration_since(last).as_millis() < 500 // min 500ms between messages
+                                    } else {
+                                        false
+                                    };
+                                    if should_queue && app.server().flood_protection {
+                                        app.server_mut().flood_queue.push_back((line.to_string(), now));
+                                        app.system_message("-!- Flood protection: message queued");
+                                    } else {
+                                        if let Some(s) = &app.server().sender {
+                                            let _ = s.send_privmsg(&buf_name, line);
+                                        }
+                                        app.server_mut().flood_last_send = Some(now);
+                                        app.buffer_message(&buf_name, format!("<{}> {}", app.server().our_nick, line), void::app::MessageType::Normal);
                                     }
-                                    app.buffer_message(&buf_name, format!("<{}> {}", app.server().our_nick, line), void::app::MessageType::Normal);
                                 }
                             }
                         }
@@ -611,6 +624,29 @@ async fn main() -> Result<()> {
 
         // Draw PO przetworzeniu eventów — eliminuje one-command lag
         renderer::draw(&mut terminal, &app)?;
+
+        // Drain flood queue — wyślij queued messages po 500ms
+        {
+            let now = std::time::Instant::now();
+            let mut to_send = Vec::new();
+            while let Some((msg, queued_at)) = app.server().flood_queue.front() {
+                if now.duration_since(*queued_at).as_millis() >= 500 {
+                    to_send.push(app.server_mut().flood_queue.pop_front().unwrap());
+                } else {
+                    break;
+                }
+            }
+            for (msg, _) in to_send {
+                let buf_name = app.current_buffer().name.clone();
+                if buf_name != "(Status)" {
+                    if let Some(s) = &app.server().sender {
+                        let _ = s.send_privmsg(&buf_name, &msg);
+                    }
+                    app.server_mut().flood_last_send = Some(now);
+                    app.buffer_message(&buf_name, format!("<{}> {}", app.server().our_nick, msg), void::app::MessageType::Normal);
+                }
+            }
+        }
 
         // Sync Lua context z App state (nicks, buffers)
         {
