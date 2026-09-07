@@ -617,7 +617,9 @@ async fn main() -> Result<()> {
             let mut ctx = lua_ctx.lock().unwrap_or_else(|e| e.into_inner());
             ctx.our_nick = app.server().our_nick.clone();
             ctx.current_channel = app.current_buffer().name.clone();
+            ctx.server_host = app.server().host.clone();
             ctx.connected = app.server().connected;
+            ctx.settings = app.settings.map.clone();
             ctx.buffer_names = app.buffers.iter().map(|b| b.name.clone()).collect();
             for buf in &app.buffers {
                 if buf.name.starts_with('#') || buf.name.starts_with('&') || buf.name.starts_with('+') || buf.name.starts_with('!') {
