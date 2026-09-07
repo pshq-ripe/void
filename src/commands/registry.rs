@@ -174,15 +174,16 @@ impl CommandRegistry {
 
 fn cmd_server(app: &mut App, args: &[&str]) -> CommandResult {
     if args.is_empty() {
-        // Pokaż wszystkie serwery
+        // Pokaż wszystkie serwery z buforami
         app.system_message("-!- Servers:");
-        let server_list: Vec<(usize, String, u16, bool, String)> = app.servers.iter().enumerate()
-            .map(|(i, s)| (i, s.host.clone(), s.port, s.connected, s.our_nick.clone()))
-            .collect();
-        for (i, host, port, connected, nick) in server_list {
+        for (i, server) in app.servers.iter().enumerate() {
             let marker = if i == app.active_server_idx { "*" } else { " " };
-            let status = if connected { "connected" } else { "disconnected" };
-            app.system_message(&format!("  {} [{}] {}:{} ({}) nick:{}", marker, i, host, port, status, nick));
+            let status = if server.connected { "connected" } else { "disconnected" };
+            let bufs: Vec<String> = server.buffer_indices.iter()
+                .filter_map(|&idx| app.buffers.get(idx).map(|b| b.name.clone()))
+                .collect();
+            app.system_message(&format!("  {} [{}] {}:{} ({}) nick:{} bufs:[{}]",
+                marker, i, server.host, server.port, status, server.our_nick, bufs.join(", ")));
         }
         return CommandResult::Ok;
     }

@@ -226,6 +226,7 @@ pub struct ServerConnection {
     pub netsplit_server: String,       // server that split
     pub netsplit_start: Option<std::time::Instant>,
     pub ban_list: Vec<BanEntry>,       // tracked ban list per channel
+    pub buffer_indices: Vec<usize>,    // indices into App.buffers for this server
     pub chatnets: HashMap<String, ChatNet>, // IRC network configs
     pub write_buffer: VecDeque<String>, // outgoing message buffer
     pub massjoin_buffer: Vec<(String, String, String)>, // (nick, channel, host) buffered joins
@@ -318,6 +319,7 @@ impl ServerConnection {
             flood_protection: true,
             flood_queue: VecDeque::new(),
             flood_last_send: None,
+            buffer_indices: vec![0], // Status buffer zawsze indeks 0
         }
     }
 }
@@ -730,12 +732,20 @@ impl App {
     pub fn add_server(&mut self, host: &str, port: u16, nick: &str, tls: bool) -> usize {
         let idx = self.servers.len();
         self.servers.push(ServerConnection::new(host, port, nick, tls));
+        // Dodaj Status buffer dla nowego serwera
+        let buf_idx = self.buffers.len();
+        self.buffers.push(Buffer::new("(Status)"));
+        self.servers[idx].buffer_indices.push(buf_idx);
         idx
     }
 
     pub fn switch_server(&mut self, idx: usize) {
         if idx < self.servers.len() {
             self.active_server_idx = idx;
+            // Przełącz na pierwszy buffer tego serwera
+            if let Some(&buf_idx) = self.servers[idx].buffer_indices.first() {
+                self.current_buffer_idx = buf_idx;
+            }
         }
     }
 
