@@ -556,7 +556,7 @@ async fn main() -> Result<()> {
                                 .filter(|b| crate::ui::renderer::is_channel(&b.name) && b.name != "(Status)")
                                 .map(|b| b.name.clone())
                                 .collect();
-                            app.server_mut().auto_join = channels;
+                            app.server_mut().rejoin_channels = channels;
                             conn_handle = Some(tokio::spawn(async move {
                                 tokio::time::sleep(Duration::from_secs(delay)).await;
                                 connection::spawn_connection(host, port, nickname, use_tls, None, None, false, connection::ProxyConfig::default(), false, None, tx).await;

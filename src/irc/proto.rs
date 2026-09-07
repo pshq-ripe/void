@@ -507,7 +507,8 @@ fn handle_server_response(app: &mut App, resp: Response, args: &[String], _sourc
                 }
             }
             // Auto-join kanałów po reconnect
-            let channels: Vec<String> = app.server().auto_join.drain(..).collect();
+            let channels: Vec<String> = app.server().rejoin_channels.clone();
+            app.server_mut().rejoin_channels.clear();
             for ch in channels {
                 if let Some(s) = &app.server().sender {
                     let _ = s.send_join(&ch);

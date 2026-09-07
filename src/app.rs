@@ -221,6 +221,7 @@ pub struct ServerConnection {
     pub pending_redirects: Vec<ServerRedirect>, // pending command redirects
     pub default_charset: String,               // default charset (UTF-8)
     pub bouncer: Option<crate::bouncer::Bouncer>,
+    pub rejoin_channels: Vec<String>,          // channels to rejoin after reconnect
 }
 
 /// Konfiguracja sieci IRC (chatnet)
@@ -297,6 +298,7 @@ impl ServerConnection {
             pending_redirects: Vec::new(),
             default_charset: "UTF-8".into(),
             bouncer: None,
+            rejoin_channels: Vec::new(),
         }
     }
 }
