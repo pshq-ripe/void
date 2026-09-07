@@ -1915,7 +1915,21 @@ fn cmd_dcc(app: &mut App, args: &[&str]) -> CommandResult {
             if args.len() < 3 {
                 return CommandResult::Error("Usage: /dcc send <nick> <file>".into());
             }
-            app.system_message(&format!("-!- DCC SEND {} to {} — not yet implemented (coming with LiCe).", args[2], args[1]));
+            let nick = args[1];
+            let file = args[2];
+            match app.dcc.initiate_send(nick, file) {
+                Ok((id, ctcp)) => {
+                    if let Some(s) = &app.server().sender {
+                        let _ = s.send(irc::client::prelude::Command::Raw(
+                            format!("PRIVMSG {} :{}", nick, ctcp), Vec::new()
+                        ));
+                    }
+                    app.system_message(&format!("-!- DCC SEND initiated to {} — id {} (waiting for connection)", nick, id));
+                }
+                Err(e) => {
+                    return CommandResult::Error(format!("DCC SEND error: {}", e));
+                }
+            }
         }
         "get" => {
             if args.len() < 2 {

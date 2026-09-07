@@ -1,5 +1,5 @@
 use std::io::{Read, Write};
-use std::net::{SocketAddr, TcpStream};
+use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::path::PathBuf;
 
 /// Typ transferu DCC
@@ -198,6 +198,48 @@ impl DccManager {
         }
 
         Ok(format!("DCC SEND from {} complete: {} ({} bytes)", nick, filename, total_bytes))
+    }
+
+    /// Inicjuj DCC SEND — nasłuchuj i wyślij CTCP do odbiorcy
+    pub fn initiate_send(&mut self, nick: &str, filepath: &str) -> Result<(usize, String), String> {
+        let path = PathBuf::from(shellexpand::tilde(filepath).to_string());
+        if !path.exists() {
+            return Err(format!("File not found: {}", filepath));
+        }
+        let metadata = std::fs::metadata(&path)
+            .map_err(|e| format!("Cannot read file: {}", e))?;
+        let filesize = metadata.len();
+        let filename = path.file_name()
+            .ok_or_else(|| "Invalid filename".to_string())?
+            .to_string_lossy()
+            .to_string();
+
+        // Nasłuchuj na losowym porcie
+        let listener = TcpListener::bind("0.0.0.0:0")
+            .map_err(|e| format!("Cannot bind listener: {}", e))?;
+        let local_port = listener.local_addr()
+            .map_err(|e| format!("Cannot get local addr: {}", e))?
+            .port();
+
+        let id = self.next_id;
+        self.next_id += 1;
+        self.sessions.push(DccSession {
+            id,
+            dcc_type: DccType::Send,
+            nick: nick.to_string(),
+            state: DccState::Pending,
+            filename: Some(filename.clone()),
+            filesize: Some(filesize),
+            bytes_transferred: 0,
+            addr: Some(SocketAddr::new("0.0.0.0".parse().unwrap(), local_port)),
+            path: Some(path),
+        });
+
+        // CTCP DCC SEND: filename filesize ip port
+        let ip_num: u32 = 0; // passive DCC — odbiorca się łączy do nas
+        let ctcp = format!("\x01DCC SEND {} {} {} {}\x01", filename, filesize, ip_num, local_port);
+
+        Ok((id, ctcp))
     }
 
     /// Formatuj listę sesji do wyświetlenia
