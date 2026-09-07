@@ -1,4 +1,4 @@
-use crate::app::{App, HighlightPattern, IgnoreEntry, MessageType, NotifyEntry, TimerEntry};
+use crate::app::{App, HighlightPattern, IgnoreEntry, MessageType, NotifyEntry, TimerEntry, WindowLevel};
 use std::time::{Duration, Instant};
 
 /// Typ callbacku komendy
@@ -810,6 +810,19 @@ fn cmd_window(app: &mut App, args: &[&str]) -> CommandResult {
         }
         "level" => {
             if let Some(level) = args.get(1) {
+                let buf = app.current_buffer_mut();
+                buf.level = match level.to_lowercase().as_str() {
+                    "all" => WindowLevel::All,
+                    "msgs" | "msg" | "messages" => WindowLevel::Msgs,
+                    "joins" | "join" => WindowLevel::Joins,
+                    "parts" | "part" => WindowLevel::Parts,
+                    "quits" | "quit" => WindowLevel::Quits,
+                    "topics" | "topic" => WindowLevel::Topics,
+                    "modes" | "mode" => WindowLevel::Modes,
+                    _ => {
+                        return CommandResult::Error("Levels: all, msgs, joins, parts, quits, topics, modes".into());
+                    }
+                };
                 app.system_message(&format!("-!- Window level set to: {}", level));
             } else {
                 app.system_message("-!- Window level: all (available: all, msgs, joins, parts, quits, topics, modes)");

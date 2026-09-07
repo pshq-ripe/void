@@ -239,6 +239,18 @@ fn render_chat(f: &mut ratatui::Frame, area: ratatui::layout::Rect, buf: &crate:
 
     let all_text: Vec<Line> = buf.messages
         .iter()
+        .filter(|m| {
+            use crate::app::WindowLevel;
+            match buf.level {
+                WindowLevel::All => true,
+                WindowLevel::Msgs => matches!(m.msg_type, MessageType::Normal | MessageType::Highlight | MessageType::Notice),
+                WindowLevel::Joins => m.text.contains("has joined"),
+                WindowLevel::Parts => m.text.contains("has left") || m.text.contains("has parted"),
+                WindowLevel::Quits => m.text.contains("has quit"),
+                WindowLevel::Topics => m.text.contains("set topic") || m.text.contains("Topic for"),
+                WindowLevel::Modes => m.text.contains("sets mode") || m.text.contains("mode:"),
+            }
+        })
         .map(|m| {
             let color = match m.msg_type {
                 MessageType::Normal => theme.msg_normal,

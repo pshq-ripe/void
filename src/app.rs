@@ -19,6 +19,18 @@ pub struct Buffer {
     pub has_activity: bool,
     pub new_while_scrolled: usize,  // nowe wiadomości podczas scrollback
     pub charset: String,            // charset for this buffer (empty = use default)
+    pub level: WindowLevel,         // message level filter
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum WindowLevel {
+    All,
+    Msgs,
+    Joins,
+    Parts,
+    Quits,
+    Topics,
+    Modes,
 }
 
 /// Wpis na liście nicków z prefixem trybu (@, +, %, ~, &)
@@ -93,6 +105,7 @@ impl Buffer {
             has_activity: false,
             new_while_scrolled: 0,
             charset: String::new(),
+            level: WindowLevel::All,
         }
     }
 
