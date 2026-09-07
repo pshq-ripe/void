@@ -13,3 +13,10 @@ pub mod bouncer;
 
 pub mod app;
 pub use app::App;
+
+#[cfg(test)]
+mod app_test;
+#[cfg(test)]
+mod settings_test;
+#[cfg(test)]
+mod theme_test;

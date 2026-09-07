@@ -20,6 +20,8 @@ fn lua_integration_test() {
         connected: true,
         cmd_tx,
         settings: std::collections::HashMap::new(),
+        nicks_by_channel: std::collections::HashMap::new(),
+        buffer_names: Vec::new(),
     }));
 
     // 3. Register API
