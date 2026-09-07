@@ -2263,14 +2263,22 @@ fn cmd_rawlog(app: &mut App, args: &[&str]) -> CommandResult {
 }
 
 fn cmd_starttls(app: &mut App, _args: &[&str]) -> CommandResult {
+    if app.server().tls {
+        app.system_message("-!- Already connected with TLS.");
+        return CommandResult::Ok;
+    }
     if !app.server().connected {
         return CommandResult::NeedSender;
     }
+    app.system_message("-!- STARTTLS: Reconnecting with TLS...");
+    // Rozłącz i połącz ponownie z TLS
     if let Some(s) = &app.server().sender {
-        let _ = s.send(irc::client::prelude::Command::Raw("STARTTLS".into(), Vec::new()));
+        let _ = s.send_quit("STARTTLS upgrade");
     }
-    app.system_message("-!- Sending STARTTLS request...");
-    app.system_message("-!- Note: TLS upgrade requires reconnection with --no-tls=false");
+    app.server_mut().connected = false;
+    app.server_mut().sender = None;
+    app.server_mut().tls = true;
+    app.reconnect_pending = true;
     CommandResult::Ok
 }
 
