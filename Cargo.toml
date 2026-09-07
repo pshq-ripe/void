@@ -1,6 +1,6 @@
 [package]
 name = "void"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 authors = ["Łukasz \"pshq\" Piotrowski <me@pshq.org>"]
 description = "A modern, Lua-scriptable IRC client inspired by epic5/LiCe5/epic6"

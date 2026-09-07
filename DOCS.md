@@ -3441,4 +3441,4 @@ Available in aliases, format templates, and conditional expressions:
 
 ---
 
-*Documentation generated for Void IRC Client v0.3.3*
+*Documentation generated for Void IRC Client v0.3.4*
