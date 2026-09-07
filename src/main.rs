@@ -553,7 +553,7 @@ async fn main() -> Result<()> {
                             let use_tls = app.server().tls;
                             // Zapisz kanały do auto-join po reconnect
                             let channels: Vec<String> = app.buffers.iter()
-                                .filter(|b| crate::ui::renderer::is_channel(&b.name) && b.name != "(Status)")
+                                .filter(|b| b.name.starts_with('#') || b.name.starts_with('&') || b.name.starts_with('+') || b.name.starts_with('!'))
                                 .map(|b| b.name.clone())
                                 .collect();
                             app.server_mut().rejoin_channels = channels;
