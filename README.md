@@ -1,4 +1,4 @@
-# Void IRC Client v0.3.2
+# Void IRC Client v0.3.3
 
 A modern, Lua-scriptable IRC client written in Rust, inspired by **epic5** with **LiCe5** scripts and **epic6** features.
 
