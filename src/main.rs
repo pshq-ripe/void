@@ -122,6 +122,8 @@ async fn main() -> Result<()> {
             connected: false,
             cmd_tx: lua_cmd_tx,
             settings: std::collections::HashMap::new(),
+            nicks_by_channel: std::collections::HashMap::new(),
+            buffer_names: Vec::new(),
         }
     ));
     void::scripting::api::register_api(&lua, lua_hooks.clone(), lua_ctx.clone())?;
@@ -609,6 +611,23 @@ async fn main() -> Result<()> {
 
         // Draw PO przetworzeniu eventów — eliminuje one-command lag
         renderer::draw(&mut terminal, &app)?;
+
+        // Sync Lua context z App state (nicks, buffers)
+        {
+            let mut ctx = lua_ctx.lock().unwrap_or_else(|e| e.into_inner());
+            ctx.our_nick = app.server().our_nick.clone();
+            ctx.current_channel = app.current_buffer().name.clone();
+            ctx.connected = app.server().connected;
+            ctx.buffer_names = app.buffers.iter().map(|b| b.name.clone()).collect();
+            for buf in &app.buffers {
+                if buf.name.starts_with('#') || buf.name.starts_with('&') || buf.name.starts_with('+') || buf.name.starts_with('!') {
+                    ctx.nicks_by_channel.insert(
+                        buf.name.clone(),
+                        buf.nicks.iter().map(|n| n.nick.clone()).collect(),
+                    );
+                }
+            }
+        }
     }
     app.save_to_db();
 

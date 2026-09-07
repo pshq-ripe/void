@@ -156,6 +156,8 @@ pub struct LuaContext {
     pub connected: bool,
     pub cmd_tx: mpsc::Sender<LuaCommand>,
     pub settings: HashMap<String, String>,
+    pub nicks_by_channel: HashMap<String, Vec<String>>,  // channel -> nicks
+    pub buffer_names: Vec<String>,  // all buffer names
 }
 
 /// Inicjalizacja Lua API — rejestruje tabelę `void` z pełnym API
@@ -838,18 +840,22 @@ pub fn register_api(lua: &Lua, hooks: Arc<Mutex<LuaHooks>>, ctx: Arc<Mutex<LuaCo
         void_table.set("reset", reset_fn)?;
     }
 
-    // ─── void.nicks(channel) — placeholder (needs Rust-side integration) ──
+    // ─── void.nicks(channel) — lista nicków na kanale ──
     {
-        let nicks_fn = lua.create_function(|_, _channel: String| {
-            Ok(Vec::<String>::new())
+        let ctx = ctx.clone();
+        let nicks_fn = lua.create_function(move |_, channel: String| {
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
+            Ok(ctx.nicks_by_channel.get(&channel).cloned().unwrap_or_default())
         })?;
         void_table.set("nicks", nicks_fn)?;
     }
 
-    // ─── void.buffers() — placeholder ──
+    // ─── void.buffers() — lista wszystkich buforów ────
     {
-        let buffers_fn = lua.create_function(|_, ()| {
-            Ok(Vec::<String>::new())
+        let ctx = ctx.clone();
+        let buffers_fn = lua.create_function(move |_, ()| {
+            let ctx = ctx.lock().unwrap_or_else(|e| e.into_inner());
+            Ok(ctx.buffer_names.clone())
         })?;
         void_table.set("buffers", buffers_fn)?;
     }
