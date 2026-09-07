@@ -357,6 +357,7 @@ impl Settings {
         map.insert("SHOW_STATUSBAR".into(), "ON".into());
         map.insert("SHOW_USER_COUNT".into(), "ON".into());
         map.insert("SHOW_BUFFER_LIST".into(), "OFF".into());
+        map.insert("SHOW_WINDOW_BAR".into(), "OFF".into());
         map.insert("DEFAULT_KICK_REASON".into(), "Requested".into());
         map.insert("DEFAULT_PART_REASON".into(), "Leaving".into());
         map.insert("DEFAULT_QUIT_REASON".into(), "Leaving".into());

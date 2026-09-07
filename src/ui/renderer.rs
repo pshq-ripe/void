@@ -386,6 +386,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         let show_statusbar = app.settings.get_bool("SHOW_STATUSBAR");
         let show_user_count = app.settings.get_bool("SHOW_USER_COUNT");
         let show_buffer_list = app.settings.get_bool("SHOW_BUFFER_LIST");
+        let show_window_bar = app.settings.get_bool("SHOW_WINDOW_BAR");
 
         // Główny podział: [BufferList | MainArea]
         let buffer_list_width = if show_buffer_list { 20 } else { 0 };
@@ -399,18 +400,44 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
 
         let main_area = if show_buffer_list { horizontal_chunks[1] } else { area };
 
-        // Główny podział pionowy: [Topic] | [Chat(+Nicks)] | [StatusBar] | [Input]
+        // Główny podział pionowy: [Topic] | [Chat(+Nicks)] | [WindowBar] | [StatusBar] | [Input]
         let statusbar_height = if show_statusbar { 1 } else { 0 };
+        let windowbar_height = if show_window_bar { 1 } else { 0 };
         let main_chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(0)
             .constraints([
                 Constraint::Length(1),  // Topic bar
                 Constraint::Min(5),    // Chat + Nicks
+                Constraint::Length(windowbar_height), // Window bar (active buffers)
                 Constraint::Length(statusbar_height), // Status bar
                 Constraint::Length(2), // Input
             ])
             .split(main_area);
+
+        // ─── Window bar (horizontal buffer tabs) ────────
+        if show_window_bar {
+            let mut win_spans: Vec<Span> = Vec::new();
+            for (i, buffer) in app.buffers.iter().enumerate() {
+                let is_active = i == app.current_buffer_idx;
+                let label = if buffer.name.len() > 12 {
+                    format!(" {}… ", &buffer.name[..11])
+                } else {
+                    format!(" {} ", buffer.name)
+                };
+                let style = if is_active {
+                    Style::default().fg(app.theme_colors.status_bar_active_fg).bg(app.theme_colors.status_bar_active_bg).add_modifier(Modifier::BOLD)
+                } else if buffer.has_activity {
+                    Style::default().fg(app.theme_colors.status_bar_activity_fg).bg(app.theme_colors.status_bar_activity_bg)
+                } else {
+                    Style::default().fg(app.theme_colors.status_bar_fg).bg(app.theme_colors.status_bar_bg)
+                };
+                win_spans.push(Span::styled(label, style));
+            }
+            let win_bar = Paragraph::new(Line::from(win_spans))
+                .style(Style::default().bg(app.theme_colors.status_bar_bg));
+            f.render_widget(win_bar, main_chunks[2]);
+        }
 
         // ─── Buffer list (left panel) ───────────────────
         if show_buffer_list {
@@ -625,7 +652,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
 
         // ─── Status bar ─────────────────────────────────
         // Oblicz szerokości etykiet i przewiń żeby aktywny bufor był widoczny
-        let bar_width = main_chunks[2].width as usize;
+        let bar_width = main_chunks[3].width as usize;
         let labels: Vec<String> = app.buffers.iter().enumerate().map(|(i, b)| {
             let is_chan = is_channel(&b.name);
             if b.unread_count > 0 && i != app.current_buffer_idx {
@@ -714,7 +741,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
 
         let status_bar = Paragraph::new(Line::from(buf_spans))
             .style(Style::default().bg(app.theme_colors.status_bar_bg));
-        f.render_widget(status_bar, main_chunks[2]);
+        f.render_widget(status_bar, main_chunks[4]);
 
         // ─── Input line ─────────────────────────────────
         let buf_name = &app.buffers[app.current_buffer_idx].name;
@@ -744,7 +771,7 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
             Span::styled(after_cursor.to_string(), Style::default().fg(app.theme_colors.input_fg)),
         ];
         let input_block = Paragraph::new(Line::from(input_spans));
-        f.render_widget(input_block, main_chunks[3]);
+        f.render_widget(input_block, main_chunks[4]);
 
         // Ukryj native cursor — poza viewport
         f.set_cursor_position((0, area.height.saturating_sub(1)));
