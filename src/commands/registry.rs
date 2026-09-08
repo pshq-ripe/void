@@ -133,6 +133,9 @@ impl CommandRegistry {
         // ─── DCC ─────────────────────────────────────────
         self.register("DCC", &[], "/dcc <list|chat|send|get|close> — DCC subsystem", cmd_dcc);
 
+        // ─── OTR ─────────────────────────────────────────
+        self.register("OTR", &[], "/otr <start|stop|status|fingerprint> — OTR encryption", cmd_otr);
+
         // ─── Dodatkowe komendy kanałowe ──────────────────
         self.register("LIST", &[], "/list [mask] — List channels on server", cmd_list);
         self.register("CYCLE", &[], "/cycle — Part and rejoin current channel", cmd_cycle);
@@ -1897,6 +1900,75 @@ fn cmd_format(app: &mut App, args: &[&str]) -> CommandResult {
 }
 
 // ─── DCC ─────────────────────────────────────────
+
+// ─── OTR ─────────────────────────────────────────
+
+fn cmd_otr(app: &mut App, args: &[&str]) -> CommandResult {
+    let subcmd = args.first().map(|s| *s).unwrap_or("status");
+    let buf_name = app.current_buffer().name.clone();
+
+    match subcmd {
+        "start" => {
+            let target = if args.len() > 1 { args[1].to_string() } else { buf_name.clone() };
+            match app.otr.start(&target) {
+                Ok(key) => {
+                    // Wyślij DH pubkey jako OTR message
+                    let otr_msg = format!("?OTR:AAM,{}", base64::encode(&key));
+                    if let Some(s) = &app.server().sender {
+                        let _ = s.send_privmsg(&target, &otr_msg);
+                    }
+                    app.system_message(&format!("-!- OTR: Key exchange initiated with {}", target));
+                }
+                Err(e) => {
+                    return CommandResult::Error(format!("OTR error: {}", e));
+                }
+            }
+        }
+        "stop" => {
+            if let Some(session) = app.otr.sessions.get_mut(&buf_name) {
+                session.state = crate::otr::OtrState::Plaintext;
+                app.system_message(&format!("-!- OTR: Session with {} ended", buf_name));
+            } else {
+                app.system_message("-!- OTR: No active session");
+            }
+        }
+        "status" => {
+            let session_info = app.otr.sessions.get(&buf_name).map(|s| {
+                let state = match s.state {
+                    crate::otr::OtrState::Plaintext => "Plaintext",
+                    crate::otr::OtrState::AwaitingKey => "Awaiting key",
+                    crate::otr::OtrState::Encrypted => "Encrypted",
+                    crate::otr::OtrState::Plaintext => "Finished",
+                    _ => "Unknown",
+                };
+                (state.to_string(), s.fingerprint.clone())
+            });
+            if let Some((state, fp)) = session_info {
+                app.system_message(&format!("-!- OTR with {}: {}", buf_name, state));
+                if let Some(ref fp) = fp {
+                    app.system_message(&format!("-!- Fingerprint: {}", fp));
+                }
+            } else {
+                app.system_message(&format!("-!- OTR: No session with {}", buf_name));
+            }
+        }
+        "fingerprint" => {
+            if let Some(session) = app.otr.sessions.get(&buf_name) {
+                if let Some(ref fp) = session.fingerprint {
+                    app.system_message(&format!("-!- OTR fingerprint for {}: {}", buf_name, fp));
+                } else {
+                    app.system_message("-!- OTR: No fingerprint (not encrypted)");
+                }
+            } else {
+                app.system_message("-!- OTR: No session");
+            }
+        }
+        _ => {
+            return CommandResult::Error("Usage: /otr <start|stop|status|fingerprint> [nick]".into());
+        }
+    }
+    CommandResult::Ok
+}
 
 fn cmd_dcc(app: &mut App, args: &[&str]) -> CommandResult {
     if args.is_empty() {

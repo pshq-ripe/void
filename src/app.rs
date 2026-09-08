@@ -430,6 +430,7 @@ pub struct App {
     pub logger: Logger,
     pub flood: FloodProtection,
     pub dcc: DccManager,
+    pub otr: crate::otr::OtrManager,
 }
 
 /// Wzorzec podświetlania
@@ -709,6 +710,7 @@ impl App {
             logger: Logger::new(&log_file),
             flood: FloodProtection::new(flood_rate, flood_per),
             dcc: DccManager::new(&dcc_dir),
+            otr: crate::otr::OtrManager::new(),
         };
         // MOTD — losowy ASCII art logo
         for line in crate::motd::get_motd().lines() {

@@ -10,6 +10,7 @@ pub mod motd;
 pub mod format;
 pub mod charset;
 pub mod bouncer;
+pub mod otr;
 
 pub mod app;
 pub use app::App;
