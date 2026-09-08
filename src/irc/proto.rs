@@ -876,13 +876,26 @@ fn handle_server_response(app: &mut App, resp: Response, args: &[String], _sourc
         }
         Response::ERR_NICKNAMEINUSE => {
             if args.len() >= 2 {
-                app.system_message(&format!("-!- Nickname {} is already in use.", args[1]));
-                // Dodaj podkreślnik i spróbuj ponownie
-                let new_nick = format!("{}_", app.server().our_nick);
-                if let Some(s) = &app.server().sender {
-                    let _ = s.send(Command::NICK(new_nick.clone()));
+                let taken_nick = &args[1];
+                app.system_message(&format!("-!- Nickname {} is already in use.", taken_nick));
+
+                // Jeśli mamy hasło NickServ — spróbuj GHOST starego sesję
+                if let Some(ref pass) = app.server().nick_password {
+                    if let Some(s) = &app.server().sender {
+                        let _ = s.send_privmsg("NickServ", &format!("GHOST {} {}", taken_nick, pass));
+                        app.system_message(&format!("-!- Sent GHOST to NickServ for {}", taken_nick));
+                        // Poczekaj chwilę i spróbuj odzyskać nick
+                        let _ = s.send(Command::NICK(taken_nick.clone()));
+                        app.server_mut().our_nick = taken_nick.clone();
+                    }
+                } else {
+                    // Brak hasła — dodaj podkreślnik
+                    let new_nick = format!("{}_", app.server().our_nick);
+                    if let Some(s) = &app.server().sender {
+                        let _ = s.send(Command::NICK(new_nick.clone()));
+                    }
+                    app.server_mut().our_nick = new_nick;
                 }
-                app.server_mut().our_nick = new_nick;
             }
         }
         Response::ERR_CHANOPRIVSNEEDED => {
