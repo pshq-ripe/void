@@ -389,6 +389,28 @@ pub fn handle_irc_message(app: &mut App, msg: &Message) {
                     }
                 }
             }
+            // Zapisz tryby kanału
+            if let Some(buf) = app.get_buffer_mut(channel) {
+                // Aktualizuj channel_modes — dodaj nowe, usuń cofnięte
+                for m in modes.iter() {
+                    let flag = m.flag();
+                    let arg = m.arg().unwrap_or("");
+                    if arg.is_empty() {
+                        // Tryby bez argumentów (+s, +n, +t, +p, +k, +l itp)
+                        match m {
+                            Mode::Plus(_, _) => {
+                                if !buf.channel_modes.contains(&flag[1..]) {
+                                    buf.channel_modes.push_str(&flag[1..]);
+                                }
+                            }
+                            Mode::Minus(_, _) => {
+                                buf.channel_modes = buf.channel_modes.replace(&flag[1..], "");
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
             app.buffer_message(channel, format!("* {} sets mode: {}", source, mode_str), MessageType::System);
         }
 

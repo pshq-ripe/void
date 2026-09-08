@@ -476,10 +476,15 @@ pub fn draw(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &App) ->
         }
 
         // ─── Topic bar ──────────────────────────────────
-        let topic_text = if buf.topic.is_empty() {
-            format!(" {} ", buf.name)
+        let modes_str = if !buf.channel_modes.is_empty() {
+            format!(" +{} ", buf.channel_modes)
         } else {
-            format!(" {} — {} ", buf.name, buf.topic)
+            String::new()
+        };
+        let topic_text = if buf.topic.is_empty() {
+            format!(" {}{} ", buf.name, modes_str)
+        } else {
+            format!(" {}{} — {} ", buf.name, modes_str, buf.topic)
         };
         let topic_bar = Paragraph::new(Span::styled(
             topic_text,

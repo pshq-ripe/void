@@ -19,6 +19,7 @@ pub struct Buffer {
     pub has_activity: bool,
     pub new_while_scrolled: usize,  // nowe wiadomości podczas scrollback
     pub charset: String,            // charset for this buffer (empty = use default)
+    pub channel_modes: String,      // channel modes (+sntkl etc.)
     pub level: WindowLevel,         // message level filter
 }
 
@@ -105,6 +106,7 @@ impl Buffer {
             has_activity: false,
             new_while_scrolled: 0,
             charset: String::new(),
+            channel_modes: String::new(),
             level: WindowLevel::All,
         }
     }
